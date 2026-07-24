@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth.routes.js";
-
+import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -25,5 +25,7 @@ app.get("/", (req, res) => {
         message: "CampusConnect API Running!!!"
     });
 });
+
+app.use(errorHandler);
 
 export default app;

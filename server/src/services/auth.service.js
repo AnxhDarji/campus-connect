@@ -22,9 +22,23 @@ export const register = async (userData) => {
   console.log("Assigned Role:", role);
   console.log("Hashed Password:", hashedPassword);
 
+  const newUser = await User.create({
+    fullName: userData.fullName,
+    email: userData.email,
+    password: hashedPassword,
+    institutionId: userData.institutionId,
+    role,
+    isVerified: false,
+    isActive: true,
+  });
+
+  console.log("User Created:", newUser);
+
+  const users = await User.find();
+  console.log(users);
+  
   return {
     success: true,
-    message: "Password hashed successfully.",
-    role,
+    message: "User registered successfully.",
   };
 };
