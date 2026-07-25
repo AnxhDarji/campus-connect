@@ -37,7 +37,7 @@ export const register = async ({ fullName, email, institutionId, password }) => 
       expiresAt,
       resendCount: 0,
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   await sendOTPEmail({ toEmail: normalizedEmail, toName: fullName, otp });
