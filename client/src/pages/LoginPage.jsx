@@ -3,32 +3,59 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { login } from '../services/authService';
+import { isValidInstitutionEmail } from '../utils/validation';
+
+const passwordRules = [
+  { label: 'At least 6 characters', test: (p) => p.length >= 6 },
+  { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
+  { label: 'One number', test: (p) => /[0-9]/.test(p) },
+  { label: 'One special character (!@#$...)', test: (p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null); // { type: 'success'|'error', text }
+  const [message, setMessage] = useState(null);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
-  const handleChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === 'email') {
+      if (value && !isValidInstitutionEmail(value)) {
+        setErrors((prev) => ({ ...prev, email: 'Only Charusat email is allowed!' }));
+      } else {
+        setErrors((prev) => ({ ...prev, email: null }));
+      }
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!isValidInstitutionEmail(form.email)) {
+      setErrors({ email: 'Only Charusat email is allowed!' });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
     try {
       const res = await login({ email: form.email, password: form.password });
-      setMessage({ type: 'success', text: res.data?.message || 'Login successful.' });
+      setMessage({ type: 'success', text: res.data?.message || 'Logged in successfully!' });
     } catch (err) {
       const status = err.response?.status;
       let text;
       if (!status || status === 404) {
         text = 'Login service is currently under development. Please try again later.';
       } else if (status === 400 || status === 401) {
-        text = 'Login Failed';
+        text = err.response?.data?.message || 'Invalid email or password.';
       } else {
-        text = err.response?.data?.message || err.response?.data?.error || 'Something went wrong.';
+        text = err.response?.data?.message || 'Something went wrong.';
       }
       setMessage({ type: 'error', text });
     } finally {
@@ -39,7 +66,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm px-8 py-10">
-        {/* Header */}
         <div className="text-center mb-8">
           <p className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">
             CHARUSAT
@@ -48,7 +74,6 @@ export default function LoginPage() {
           <p className="text-xs text-gray-400 mt-1">Sign in to CampusConnect</p>
         </div>
 
-        {/* Message */}
         {message && (
           <div
             className={`text-xs px-3 py-2.5 rounded-lg mb-5 ${
@@ -62,24 +87,47 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Institution Email"
-            type="email"
-            name="email"
-            placeholder="you@charusat.edu.in"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            placeholder="••••••••"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
+          <div className="flex flex-col gap-1">
+            <Input
+              label="Institution Email"
+              type="email"
+              name="email"
+              placeholder="you@charusat.edu.in"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+            {errors.email && (
+              <p className="text-xs text-red-500">{errors.email}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              required
+            />
+            {(passwordFocused || form.password) && (
+              <ul className="mt-1 flex flex-col gap-1">
+                {passwordRules.map((rule) => {
+                  const passed = rule.test(form.password);
+                  return (
+                    <li key={rule.label} className={`flex items-center gap-1.5 text-xs ${passed ? 'text-green-600' : 'text-gray-400'}`}>
+                      <span>{passed ? '✓' : '○'}</span>
+                      {rule.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           <div className="mt-1">
             <Button type="submit" loading={loading}>
               {loading ? 'Logging In...' : 'Login'}
