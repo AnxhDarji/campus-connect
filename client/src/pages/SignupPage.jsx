@@ -10,8 +10,9 @@ import {
 } from '../utils/validation';
 
 const passwordRules = [
-  { label: 'At least 6 characters', test: (p) => p.length >= 6 },
+  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
   { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
+  { label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
   { label: 'One number', test: (p) => /[0-9]/.test(p) },
   { label: 'One special character (!@#$...)', test: (p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
 ];
@@ -81,8 +82,8 @@ export default function SignupPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await register(form);
-      setMessage({ type: 'success', text: res.data?.message || 'Account created successfully.' });
+      await register(form);
+      navigate('/verify-otp', { state: { email: form.email } });
     } catch (err) {
       const status = err.response?.status;
       let text;
