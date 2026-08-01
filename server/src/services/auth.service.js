@@ -94,6 +94,13 @@ export const verifyOTP = async ({ email, otp }) => {
     success: true,
     message: "Account created successfully.",
     token,
+    user: {
+      id: newUser._id,
+      fullName: newUser.fullName,
+      email: newUser.email,
+      role: newUser.role,
+      institutionId: newUser.institutionId,
+    },
   };
 };
 
