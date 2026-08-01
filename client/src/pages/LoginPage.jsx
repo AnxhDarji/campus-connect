@@ -4,6 +4,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { login } from '../services/authService';
 import { isValidInstitutionEmail } from '../utils/validation';
+import { useAuth } from '../context/AuthContext';
 
 const passwordRules = [
   { label: 'At least 8 characters', test: (p) => p.length >= 8 },
@@ -15,6 +16,7 @@ const passwordRules = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,8 @@ export default function LoginPage() {
     setMessage(null);
     try {
       const res = await login({ email: form.email, password: form.password });
-      setMessage({ type: 'success', text: res.data?.message || 'Logged in successfully!' });
+      setUser(res.data.user);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       const status = err.response?.status;
       let text;

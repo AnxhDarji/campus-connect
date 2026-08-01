@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button';
 import { verifyOtp, resendOtp } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
@@ -9,6 +10,7 @@ const RESEND_COOLDOWN = 60;
 export default function VerifyOtpPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setUser } = useAuth();
   const email = location.state?.email || '';
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
@@ -76,8 +78,8 @@ export default function VerifyOtpPage() {
     setMessage(null);
     try {
       const res = await verifyOtp({ email, otp: otpValue });
-      setMessage({ type: 'success', text: res.data?.message || 'Account verified successfully!' });
-      setTimeout(() => navigate('/login'), 1500);
+      setUser(res.data.user);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       const status = err.response?.status;
       let text;
