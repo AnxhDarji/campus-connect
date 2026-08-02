@@ -50,7 +50,12 @@ export default function LoginPage() {
     try {
       const res = await login({ email: form.email, password: form.password });
       setUser(res.data.user);
-      navigate('/dashboard', { replace: true });
+      const role = res.data.user?.role;
+      if (["Super Admin", "Dept Admin", "Admin"].includes(role)) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       const status = err.response?.status;
       let text;

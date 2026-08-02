@@ -57,6 +57,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    department_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -1,4 +1,1 @@
-export const USER_ROLES = Object.freeze({
-  STUDENT: "Student",
-  FACULTY: "Faculty",
-});
+export { USER_ROLES, EVENT_AUTHORIZED_ROLES } from "../constants/userRoles.js";

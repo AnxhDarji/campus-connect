@@ -88,7 +88,7 @@ export const verifyOTP = async ({ email, otp }) => {
 
   await PendingRegistration.deleteOne({ email: normalizedEmail });
 
-  const token = generateJWT({ id: newUser._id, role: newUser.role });
+  const token = generateJWT({ id: newUser._id, role: newUser.role, department_id: newUser.department_id || null });
 
   return {
     success: true,
@@ -100,6 +100,7 @@ export const verifyOTP = async ({ email, otp }) => {
       email: newUser.email,
       role: newUser.role,
       institutionId: newUser.institutionId,
+      department_id: newUser.department_id || null,
     },
   };
 };
@@ -169,7 +170,7 @@ export const login = async ({ email, password }) => {
     throw error;
   }
 
-  const token = generateJWT({ id: user._id, role: user.role });
+  const token = generateJWT({ id: user._id, role: user.role, department_id: user.department_id || null });
 
   return {
     success: true,
@@ -181,6 +182,7 @@ export const login = async ({ email, password }) => {
       email: user.email,
       role: user.role,
       institutionId: user.institutionId,
+      department_id: user.department_id || null,
     },
   };
 };
