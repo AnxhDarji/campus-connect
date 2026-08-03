@@ -18,7 +18,7 @@ export const listRequests = async (req, res, next) => {
     const filter = deptFilter(req.user);
     if (filter === null) return res.status(403).json({ success: false, message: "Access denied." });
 
-    const { status, department, category, organization_type, requester_role, search, page = 1, limit = 20 } = req.query;
+    const { status, department, category, organization_type, requester_role, search, page = 1, limit = 20, sortBy = "created_at", sortOrder = "desc" } = req.query;
 
     const query = { is_deleted: false, ...filter };
     if (status) query.status = status;
@@ -34,6 +34,9 @@ export const listRequests = async (req, res, next) => {
       ];
     }
 
+    const sortField = ["created_at", "start_date", "title", "category"].includes(sortBy) ? sortBy : "created_at";
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
+
     const skip = (Number(page) - 1) * Number(limit);
     const [data, total] = await Promise.all([
       EventRequest.find(query)
@@ -42,7 +45,7 @@ export const listRequests = async (req, res, next) => {
         .populate("approved_by", "fullName")
         .populate("rejected_by", "fullName")
         .select("-__v")
-        .sort({ created_at: -1 })
+        .sort({ [sortField]: sortDirection })
         .skip(skip)
         .limit(Number(limit)),
       EventRequest.countDocuments(query),
@@ -113,6 +116,12 @@ export const approveRequest = async (req, res, next) => {
     request.approved_by = req.user.id;
     request.approved_at = new Date();
     request.updated_by = req.user.id;
+    if (req.body && req.body.admin_metadata) {
+      request.admin_metadata = {
+        ...(request.admin_metadata || {}),
+        ...req.body.admin_metadata,
+      };
+    }
     await request.save();
 
     res.json({ success: true, message: "Event request approved.", data: { status: request.status } });
@@ -162,6 +171,12 @@ export const editRequest = async (req, res, next) => {
     if (!request) return res.status(404).json({ success: false, message: "Event request not found." });
 
     EDITABLE.forEach((f) => { if (req.body[f] !== undefined) request[f] = req.body[f]; });
+    if (req.body.admin_metadata) {
+      request.admin_metadata = {
+        ...request.admin_metadata,
+        ...req.body.admin_metadata,
+      };
+    }
     request.updated_by = req.user.id;
     await request.save();
 

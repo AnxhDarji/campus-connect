@@ -25,7 +25,7 @@ export default function EditEventPage() {
     Promise.all([getEventRequest(id), getDepartments()])
       .then(([evRes, deptRes]) => {
         const d = evRes.data.data;
-        if (d.status !== "Pending Approval") { navigate("/events/my"); return; }
+        if (d.status !== "Pending Approval" && d.status !== "Rejected" && d.status !== "Returned for Changes") { navigate("/events/my"); return; }
         setForm({
           requester_name: d.requester_name || "",
           requester_role: d.requester_role || "",
@@ -210,7 +210,9 @@ export default function EditEventPage() {
         </div>
         <p className="text-xs text-gray-500 mb-4 font-medium">{step + 1} / {SECTIONS.length} — {SECTIONS[step]}</p>
 
-        {sections[step]}
+        <div className="min-h-[480px]">
+          {sections[step]}
+        </div>
         {serverError && <p className="text-xs text-red-500 mt-3">{serverError}</p>}
 
         <div className="flex gap-3 mt-6">

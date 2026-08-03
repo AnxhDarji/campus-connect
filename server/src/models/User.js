@@ -63,6 +63,12 @@ const userSchema = new mongoose.Schema(
       ref: "Department",
       default: null,
     },
+    bookmarks: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EventRequest",
+      }
+    ],
   },
   {
     timestamps: true,

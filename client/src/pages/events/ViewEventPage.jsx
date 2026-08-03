@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getEventRequest } from "../../services/eventService";
+import { formatTime12h } from "../../utils/timeFormatter";
 
 const Row = ({ label, value }) =>
   value ? (
@@ -78,8 +79,8 @@ export default function ViewEventPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 grid grid-cols-2 gap-4">
             <Row label="Start Date" value={new Date(data.start_date).toLocaleDateString()} />
             <Row label="End Date" value={new Date(data.end_date).toLocaleDateString()} />
-            <Row label="Start Time" value={data.start_time} />
-            <Row label="End Time" value={data.end_time} />
+            <Row label="Start Time" value={formatTime12h(data.start_time)} />
+            <Row label="End Time" value={formatTime12h(data.end_time)} />
             <Row label="Venue" value={data.venue} />
             <Row label="Building" value={data.building} />
             <Row label="Room" value={data.room} />

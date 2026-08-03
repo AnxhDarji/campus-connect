@@ -1,50 +1,103 @@
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ADMIN_ROLES = ["Super Admin", "Dept Admin", "Admin"];
-
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { setPlaceholderModule } = useOutletContext();
 
-  if (user && ADMIN_ROLES.includes(user.role)) {
-    return <Navigate to="/admin" replace />;
-  }
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
+  const modules = [
+    {
+      id: "announcements",
+      title: "Announcements & Events",
+      description: "Submit event requests, browse approved campus activities, register for workshops, and track what's happening around university.",
+      icon: "📢",
+      comingSoon: false,
+      buttonText: "Explore Module",
+      action: () => navigate("/events")
+    },
+    {
+      id: "lost-found",
+      title: "Lost & Found",
+      description: "Lost something on campus or found a misplaced item? Report it and track lost property instantly to return items to their owners.",
+      icon: "🔍",
+      comingSoon: true,
+      buttonText: "Coming Soon",
+      action: () => setPlaceholderModule("Lost & Found")
+    },
+    {
+      id: "news",
+      title: "CHARUSAT News",
+      description: "Read official university press releases, campus updates, achievements, research breakthroughs, and student spotlight stories.",
+      icon: "📰",
+      comingSoon: true,
+      buttonText: "Coming Soon",
+      action: () => setPlaceholderModule("CHARUSAT News")
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm px-8 py-10 text-center">
-        <p className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">CHARUSAT</p>
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome, {user?.fullName}!</h2>
-        <p className="text-xs text-gray-400 mb-1">{user?.email}</p>
-        <p className="text-xs text-gray-400 mb-6">Role: <span className="font-medium text-gray-600">{user?.role}</span></p>
+    <div className="space-y-10 py-4">
+      {/* Premium Hero Section */}
+      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white shadow-2xl p-8 sm:p-12">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent)] pointer-events-none" />
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-6 backdrop-blur-sm">
+            🏫 CHARUSAT University Portal
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            Welcome to Campus Connect, <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">{user?.fullName}</span>!
+          </h1>
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+            Your centralized hub for all university modules. Stay updated with campus events, report lost & found items, and read the latest CHARUSAT news.
+          </p>
+        </div>
+      </div>
 
-        <div className="flex flex-col gap-2 mb-6">
-          <button
-            onClick={() => navigate('/events/create')}
-            className="w-full py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            + Create Event Request
-          </button>
-          <button
-            onClick={() => navigate('/events/my')}
-            className="w-full py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition"
-          >
-            My Event Requests
-          </button>
+      {/* Modules Section */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Explore Platform Modules</h2>
+          <p className="text-xs text-gray-400 mt-1">Select a module to view announcements, report items, or read articles.</p>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors cursor-pointer"
-        >
-          Logout
-        </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {modules.map((mod) => (
+            <div
+              key={mod.id}
+              onClick={mod.action}
+              className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+            >
+              {mod.comingSoon && (
+                <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                  Coming Soon
+                </span>
+              )}
+              
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform duration-300">
+                {mod.icon}
+              </div>
+
+              <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                {mod.title}
+              </h3>
+              
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed flex-1">
+                {mod.description}
+              </p>
+
+              <button
+                className={`mt-6 w-full py-2 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                  mod.comingSoon
+                    ? "bg-gray-50 hover:bg-gray-100 text-gray-400 border border-gray-100"
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md"
+                }`}
+              >
+                {mod.buttonText}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

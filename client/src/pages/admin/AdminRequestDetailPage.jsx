@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { adminGetRequest, adminApproveRequest, adminRejectRequest, adminEditRequest } from "../../services/eventService";
+import { ConfirmationModal } from "../../components/Modal";
+import { formatTime12h } from "../../utils/timeFormatter";
 
 const BASE_URL = "http://localhost:5000";
 
@@ -28,16 +30,43 @@ export default function AdminRequestDetailPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [editFields, setEditFields] = useState({});
+  const [adminMetadata, setAdminMetadata] = useState({
+    tier: "Low Tier",
+    is_featured: false,
+    priority: 0,
+    badge: "",
+    festival_name: "",
+    festival_day: "",
+  });
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
 
   const load = () => {
     setLoading(true);
     adminGetRequest(id)
-      .then((r) => { setData(r.data.data); setEditFields({ title: r.data.data.title, venue: r.data.data.venue, building: r.data.data.building || "", room: r.data.data.room || "", description: r.data.data.description || "" }); })
+      .then((r) => {
+        setData(r.data.data);
+        setEditFields({
+          title: r.data.data.title,
+          venue: r.data.data.venue,
+          building: r.data.data.building || "",
+          room: r.data.data.room || "",
+          description: r.data.data.description || "",
+        });
+        setAdminMetadata({
+          tier: r.data.data.admin_metadata?.tier || "Low Tier",
+          is_featured: r.data.data.admin_metadata?.is_featured || false,
+          priority: r.data.data.admin_metadata?.priority || 0,
+          badge: r.data.data.admin_metadata?.badge || "",
+          festival_name: r.data.data.admin_metadata?.festival_name || "",
+          festival_day: r.data.data.admin_metadata?.festival_day || "",
+        });
+      })
       .catch(() => navigate("/admin/all"))
       .finally(() => setLoading(false));
   };
+
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
 
   useEffect(() => { load(); }, [id]);
 
@@ -46,11 +75,15 @@ export default function AdminRequestDetailPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleApprove = async () => {
-    if (!window.confirm("Approve this event request?")) return;
+  const handleApproveClick = () => {
+    setShowApproveConfirm(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    setShowApproveConfirm(false);
     setActionLoading("approve");
     try {
-      await adminApproveRequest(id);
+      await adminApproveRequest(id, { admin_metadata: adminMetadata });
       showToast("Event request approved.");
       load();
     } catch (e) {
@@ -79,7 +112,7 @@ export default function AdminRequestDetailPage() {
   const handleEdit = async () => {
     setActionLoading("edit");
     try {
-      await adminEditRequest(id, editFields);
+      await adminEditRequest(id, { ...editFields, admin_metadata: adminMetadata });
       showToast("Changes saved.");
       setEditOpen(false);
       load();
@@ -182,12 +215,22 @@ export default function AdminRequestDetailPage() {
       {/* Action Buttons */}
       {data.status === "Pending Approval" && (
         <div className="flex flex-wrap gap-2 mb-5">
-          <button onClick={handleApprove} disabled={!!actionLoading} className="px-4 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
-            {actionLoading === "approve" ? "Approving..." : "✓ Approve"}
-          </button>
-          <button onClick={() => setRejectOpen(true)} disabled={!!actionLoading} className="px-4 py-2 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition">
-            ✗ Reject
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleApproveClick}
+              disabled={!!actionLoading}
+              className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 transition"
+            >
+              Approve Request
+            </button>
+            <button
+              onClick={() => setRejectOpen(true)}
+              disabled={!!actionLoading}
+              className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 transition"
+            >
+              Reject Request
+            </button>
+          </div>
           <button onClick={() => setEditOpen(true)} className="px-4 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
             ✎ Edit
           </button>
@@ -214,6 +257,131 @@ export default function AdminRequestDetailPage() {
         </div>
       )}
 
+      {/* Administrative Settings Card */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-5 space-y-4 shadow-sm">
+        <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Administrative & Publishing Settings</p>
+          {data.status !== "Pending Approval" && (
+            <span className="text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded">Read-Only</span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-[10px] text-gray-400 font-semibold uppercase block mb-1">Event Tier</label>
+            {data.status === "Pending Approval" ? (
+              <select
+                value={adminMetadata.tier}
+                onChange={(e) => setAdminMetadata((prev) => ({ ...prev, tier: e.target.value }))}
+                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <option value="Top Tier">⭐ Top Tier</option>
+                <option value="Medium Tier">⭐⭐ Medium Tier</option>
+                <option value="Low Tier">⭐⭐⭐ Low Tier</option>
+              </select>
+            ) : (
+              <p className="text-xs font-medium text-gray-800">{adminMetadata.tier || "Low Tier"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400 font-semibold uppercase block mb-1">Badge (e.g. Trending)</label>
+            {data.status === "Pending Approval" ? (
+              <input
+                type="text"
+                placeholder="Trending, Special, etc."
+                value={adminMetadata.badge}
+                onChange={(e) => setAdminMetadata((prev) => ({ ...prev, badge: e.target.value }))}
+                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            ) : (
+              <p className="text-xs font-medium text-gray-800">{adminMetadata.badge || "—"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400 font-semibold uppercase block mb-1">Priority Ranking</label>
+            {data.status === "Pending Approval" ? (
+              <input
+                type="number"
+                value={adminMetadata.priority}
+                onChange={(e) => setAdminMetadata((prev) => ({ ...prev, priority: Number(e.target.value) }))}
+                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            ) : (
+              <p className="text-xs font-medium text-gray-800">{adminMetadata.priority || 0}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400 font-semibold uppercase block mb-1">Festival Name</label>
+            {data.status === "Pending Approval" ? (
+              <input
+                type="text"
+                placeholder="e.g. Sparsh"
+                value={adminMetadata.festival_name}
+                onChange={(e) => setAdminMetadata((prev) => ({ ...prev, festival_name: e.target.value }))}
+                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            ) : (
+              <p className="text-xs font-medium text-gray-800">{adminMetadata.festival_name || "—"}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400 font-semibold uppercase block mb-1">Festival Day</label>
+            {data.status === "Pending Approval" ? (
+              <input
+                type="number"
+                placeholder="e.g. 1"
+                value={adminMetadata.festival_day}
+                onChange={(e) => setAdminMetadata((prev) => ({ ...prev, festival_day: e.target.value ? Number(e.target.value) : "" }))}
+                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            ) : (
+              <p className="text-xs font-medium text-gray-800">{adminMetadata.festival_day || "—"}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 pt-4 sm:pt-2">
+            {data.status === "Pending Approval" ? (
+              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer font-medium">
+                <input
+                  type="checkbox"
+                  checked={adminMetadata.is_featured}
+                  onChange={(e) => setAdminMetadata((prev) => ({ ...prev, is_featured: e.target.checked }))}
+                  className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 border-gray-300"
+                />
+                Mark as Featured Event
+              </label>
+            ) : (
+              <p className="text-xs font-semibold text-blue-600">{adminMetadata.is_featured ? "⭐ Featured Event" : "Not Featured"}</p>
+            )}
+          </div>
+        </div>
+
+        {data.status === "Approved" && (
+          <div className="pt-2 border-t border-gray-50 flex justify-end">
+            <button
+              onClick={() => {
+                setActionLoading("save_meta");
+                adminEditRequest(id, { admin_metadata: adminMetadata })
+                  .then(() => {
+                    showToast("Publishing settings updated.");
+                    load();
+                  })
+                  .catch(() => showToast("Failed to update settings.", "error"))
+                  .finally(() => setActionLoading(null));
+              }}
+              disabled={!!actionLoading}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold shadow-sm transition-all cursor-pointer"
+            >
+              {actionLoading === "save_meta" ? "Saving..." : "Update Settings"}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-col gap-4">
         {/* Requester Info */}
         <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -238,8 +406,8 @@ export default function AdminRequestDetailPage() {
             <Row label="Club" value={data.club_name} />
             <Row label="Start Date" value={new Date(data.start_date).toLocaleDateString()} />
             <Row label="End Date" value={new Date(data.end_date).toLocaleDateString()} />
-            <Row label="Start Time" value={data.start_time} />
-            <Row label="End Time" value={data.end_time} />
+            <Row label="Start Time" value={formatTime12h(data.start_time)} />
+            <Row label="End Time" value={formatTime12h(data.end_time)} />
             <Row label="Venue" value={data.venue} />
             <Row label="Building" value={data.building} />
             <Row label="Room" value={data.room} />
@@ -333,6 +501,16 @@ export default function AdminRequestDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        onConfirm={handleConfirmApprove}
+        title="Approve Request"
+        message="Are you sure you want to approve this event request? It will be visible to students."
+        confirmText="Approve"
+        type="warning"
+      />
     </div>
   );
 }

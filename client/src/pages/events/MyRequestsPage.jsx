@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyRequests, deleteEventRequest } from "../../services/eventService";
+import { ConfirmationModal, AlertModal } from "../../components/Modal";
 
 const STATUS_COLORS = {
   "Pending Approval": "bg-amber-100 text-amber-700",
@@ -17,6 +18,11 @@ export default function MyRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
+  
+  // Custom Modal States
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: "", message: "" });
 
   const load = () => {
     setLoading(true);
@@ -28,16 +34,27 @@ export default function MyRequestsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this event request?")) return;
-    setDeletingId(id);
+  const handleDeleteClick = (id) => {
+    setConfirmTarget(id);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmTarget) return;
+    setShowConfirm(false);
+    setDeletingId(confirmTarget);
     try {
-      await deleteEventRequest(id);
-      setRequests((prev) => prev.filter((r) => r._id !== id));
+      await deleteEventRequest(confirmTarget);
+      setRequests((prev) => prev.filter((r) => r._id !== confirmTarget));
     } catch (e) {
-      alert(e.response?.data?.message || "Delete failed.");
+      setAlertInfo({
+        isOpen: true,
+        title: "Delete Failed",
+        message: e.response?.data?.message || "Delete failed."
+      });
     } finally {
       setDeletingId(null);
+      setConfirmTarget(null);
     }
   };
 
@@ -87,36 +104,55 @@ export default function MyRequestsPage() {
                   </span>
                 </div>
 
-                {r.status === "Pending Approval" && (
-                  <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50">
-                    <button
-                      onClick={() => navigate(`/events/${r._id}`)}
-                      className="text-xs text-gray-500 hover:text-gray-700 font-medium"
-                    >
-                      View
-                    </button>
-                    <span className="text-gray-200">|</span>
-                    <button
-                      onClick={() => navigate(`/events/${r._id}/edit`)}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Edit
-                    </button>
-                    <span className="text-gray-200">|</span>
-                    <button
-                      onClick={() => handleDelete(r._id)}
-                      disabled={deletingId === r._id}
-                      className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
-                    >
-                      {deletingId === r._id ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50">
+                  <button
+                    onClick={() => navigate(`/events/${r._id}`)}
+                    className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    View
+                  </button>
+                  {(r.status === "Pending Approval" || r.status === "Rejected" || r.status === "Returned for Changes") && (
+                    <>
+                      <span className="text-gray-200">|</span>
+                      <button
+                        onClick={() => navigate(`/events/${r._id}/edit`)}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Edit
+                      </button>
+                      <span className="text-gray-200">|</span>
+                      <button
+                        onClick={() => handleDeleteClick(r._id)}
+                        disabled={deletingId === r._id}
+                        className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
+                      >
+                        {deletingId === r._id ? "Deleting..." : "Delete"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirm}
+        onClose={() => { setShowConfirm(false); setConfirmTarget(null); }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Request"
+        message="Are you sure you want to delete this event request? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
+      />
+
+      <AlertModal
+        isOpen={alertInfo.isOpen}
+        onClose={() => setAlertInfo({ isOpen: false, title: "", message: "" })}
+        title={alertInfo.title}
+        message={alertInfo.message}
+      />
     </div>
   );
 }

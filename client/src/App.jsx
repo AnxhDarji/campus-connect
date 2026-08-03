@@ -8,7 +8,11 @@ import DashboardPage from './pages/DashboardPage';
 import CreateEventPage from './pages/events/CreateEventPage';
 import MyRequestsPage from './pages/events/MyRequestsPage';
 import EditEventPage from './pages/events/EditEventPage';
-import ViewEventPage from './pages/events/ViewEventPage';
+import EventDetailsPage from './pages/events/EventDetailsPage';
+import EventsFeedPage from './pages/events/EventsFeedPage';
+import FestivalPage from './pages/events/FestivalPage';
+import ProfilePage from './pages/ProfilePage';
+import MainLayout from './components/MainLayout';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminRequestsPage from './pages/admin/AdminRequestsPage';
 import AdminRequestDetailPage from './pages/admin/AdminRequestDetailPage';
@@ -38,11 +42,19 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/verify-otp" element={<VerifyOtpPage />} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/events/create" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
-        <Route path="/events/my" element={<ProtectedRoute><MyRequestsPage /></ProtectedRoute>} />
-        <Route path="/events/:id" element={<ProtectedRoute><ViewEventPage /></ProtectedRoute>} />
-        <Route path="/events/:id/edit" element={<ProtectedRoute><EditEventPage /></ProtectedRoute>} />
+        
+        {/* Main User Portal Layout */}
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/events" element={<EventsFeedPage />} />
+          <Route path="/events/create" element={<CreateEventPage />} />
+          <Route path="/events/my" element={<MyRequestsPage />} />
+          <Route path="/events/:id" element={<EventDetailsPage />} />
+          <Route path="/events/:id/edit" element={<EditEventPage />} />
+          <Route path="/festivals/:festivalName" element={<FestivalPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={null} />
           <Route path="pending" element={<AdminRequestsPage statusFilter="Pending Approval" title="Pending Requests" />} />

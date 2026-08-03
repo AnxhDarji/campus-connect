@@ -327,7 +327,9 @@ export default function CreateEventPage() {
         <p className="text-xs text-gray-500 mb-4 font-medium">{step + 1} / {SECTIONS.length} — {SECTIONS[step]}</p>
 
         {/* Section */}
-        {sections[step]}
+        <div className="min-h-[480px]">
+          {sections[step]}
+        </div>
 
         {serverError && (
           <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">

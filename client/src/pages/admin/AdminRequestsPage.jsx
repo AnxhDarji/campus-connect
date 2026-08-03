@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminListRequests, adminApproveRequest, adminRejectRequest, getDepartments } from "../../services/eventService";
+import { ConfirmationModal } from "../../components/Modal";
 
 const STATUS_BADGE = {
   "Pending Approval": "bg-amber-100 text-amber-700",
@@ -23,13 +24,17 @@ export default function AdminRequestsPage({ statusFilter, title }) {
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([]);
 
-  const [filters, setFilters] = useState({ search: "", department: "", category: "", organization_type: "", requester_role: "" });
+  const [filters, setFilters] = useState({ search: "", department: "", category: "", organization_type: "", requester_role: "", sortBy: "created_at", sortOrder: "desc" });
   const [page, setPage] = useState(1);
 
   const [rejectModal, setRejectModal] = useState(null); // { id, title }
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Custom Modal States
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [approveTargetId, setApproveTargetId] = useState(null);
 
   useEffect(() => {
     getDepartments().then((r) => setDepartments(r.data.data || [])).catch(() => {});
@@ -53,17 +58,24 @@ export default function AdminRequestsPage({ statusFilter, title }) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleApprove = async (id) => {
-    if (!window.confirm("Approve this event request?")) return;
-    setActionLoading(id + "_approve");
+  const handleApproveClick = (id) => {
+    setApproveTargetId(id);
+    setShowApproveConfirm(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approveTargetId) return;
+    setShowApproveConfirm(false);
+    setActionLoading(approveTargetId + "_approve");
     try {
-      await adminApproveRequest(id);
+      await adminApproveRequest(approveTargetId, {});
       showToast("Event request approved.");
       load();
     } catch (e) {
       showToast(e.response?.data?.message || "Failed to approve.", "error");
     } finally {
       setActionLoading(null);
+      setApproveTargetId(null);
     }
   };
 
@@ -134,7 +146,7 @@ export default function AdminRequestsPage({ statusFilter, title }) {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 grid grid-cols-2 lg:grid-cols-7 gap-3">
         <input
           value={filters.search}
           onChange={(e) => setFilter("search", e.target.value)}
@@ -152,6 +164,16 @@ export default function AdminRequestsPage({ statusFilter, title }) {
         <select value={filters.organization_type} onChange={(e) => setFilter("organization_type", e.target.value)} className="px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
           <option value="">All Org Types</option>
           {ORG_TYPES.map((o) => <option key={o}>{o}</option>)}
+        </select>
+        <select value={filters.sortBy} onChange={(e) => setFilter("sortBy", e.target.value)} className="px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <option value="created_at">Sort: Request Date</option>
+          <option value="start_date">Sort: Event Date</option>
+          <option value="title">Sort: Event Title</option>
+          <option value="category">Sort: Category</option>
+        </select>
+        <select value={filters.sortOrder} onChange={(e) => setFilter("sortOrder", e.target.value)} className="px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <option value="desc">Descending</option>
+          <option value="asc">Ascending</option>
         </select>
       </div>
 
@@ -198,7 +220,7 @@ export default function AdminRequestsPage({ statusFilter, title }) {
                           <>
                             <span className="text-gray-200">|</span>
                             <button
-                              onClick={() => handleApprove(r._id)}
+                              onClick={() => handleApproveClick(r._id)}
                               disabled={!!actionLoading}
                               className="text-green-600 hover:text-green-700 font-medium disabled:opacity-50"
                             >
@@ -246,6 +268,16 @@ export default function AdminRequestsPage({ statusFilter, title }) {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showApproveConfirm}
+        onClose={() => { setShowApproveConfirm(false); setApproveTargetId(null); }}
+        onConfirm={handleConfirmApprove}
+        title="Approve Request"
+        message="Are you sure you want to approve this event request? It will be visible to students."
+        confirmText="Approve"
+        type="warning"
+      />
     </div>
   );
 }

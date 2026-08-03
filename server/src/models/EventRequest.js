@@ -9,6 +9,18 @@ const audienceSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const adminMetadataSchema = new mongoose.Schema(
+  {
+    tier: { type: String, enum: ["Top Tier", "Medium Tier", "Low Tier"], default: "Low Tier" },
+    is_featured: { type: Boolean, default: false },
+    priority: { type: Number, default: 0 },
+    badge: { type: String, default: null },
+    festival_name: { type: String, default: null },
+    festival_day: { type: Number, default: null },
+  },
+  { _id: false }
+);
+
 const eventRequestSchema = new mongoose.Schema(
   {
     event_id: { type: String, default: () => uuidv4(), unique: true, immutable: true },
@@ -94,6 +106,9 @@ const eventRequestSchema = new mongoose.Schema(
     // Soft Delete
     is_deleted: { type: Boolean, default: false },
     deleted_at: { type: Date, default: null },
+
+    // Admin Metadata
+    admin_metadata: { type: adminMetadataSchema, default: () => ({}) },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );

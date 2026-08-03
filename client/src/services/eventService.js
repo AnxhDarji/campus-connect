@@ -35,10 +35,15 @@ export const uploadBrochure = (file, onProgress) => {
 
 export const getDepartments = () => api.get("/api/departments");
 
+export const getPublishedEvents = (params) => api.get("/api/event-requests", { params });
+export const toggleBookmark = (id) => api.post(`/api/event-requests/${id}/bookmark`);
+export const getBookmarks = () => api.get("/api/event-requests/my-bookmarks");
+export const getFestivalEvents = (name) => api.get(`/api/event-requests/festivals/${name}`);
+
 // Admin
 export const adminGetStats = () => api.get("/api/admin/event-requests/stats");
 export const adminListRequests = (params) => api.get("/api/admin/event-requests", { params });
 export const adminGetRequest = (id) => api.get(`/api/admin/event-requests/${id}`);
-export const adminApproveRequest = (id) => api.post(`/api/admin/event-requests/${id}/approve`);
+export const adminApproveRequest = (id, data) => api.post(`/api/admin/event-requests/${id}/approve`, data);
 export const adminRejectRequest = (id, rejection_reason) => api.post(`/api/admin/event-requests/${id}/reject`, { rejection_reason });
 export const adminEditRequest = (id, data) => api.patch(`/api/admin/event-requests/${id}`, data);
