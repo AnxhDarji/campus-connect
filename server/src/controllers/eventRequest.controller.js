@@ -11,6 +11,18 @@ const sanitizeBody = (body) => {
   return result;
 };
 
+const parseAudience = (raw) => {
+  if (!raw) return [];
+  const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+  return arr.map((a) => ({
+    audience_type: a.audience_type,
+    college_id: a.college_id || null,
+    program_id: a.program_id || null,
+    year: a.year || null,
+    custom_audience: a.custom_audience || null,
+  }));
+};
+
 const buildEventData = (body, userId) => {
   const b = sanitizeBody(body);
   return {
@@ -21,11 +33,13 @@ const buildEventData = (body, userId) => {
     organization_name: b.organization_name || null,
     contact_number: b.contact_number,
     email: b.email,
+    organization_email: b.organization_email,
     title: b.title,
     category: b.category,
     department_id: b.department_id,
     club_name: b.club_name || null,
     description: b.description || null,
+    poster_url: b.poster_url || null,
     start_date: b.start_date,
     end_date: b.end_date,
     start_time: b.start_time,
@@ -44,7 +58,7 @@ const buildEventData = (body, userId) => {
     facebook_url: b.facebook_url || null,
     whatsapp_url: b.whatsapp_url || null,
     brochure_url: b.brochure_url || null,
-    audience: b.audience ? (typeof b.audience === "string" ? JSON.parse(b.audience) : b.audience) : [],
+    audience: parseAudience(b.audience),
     updated_by: userId,
   };
 };

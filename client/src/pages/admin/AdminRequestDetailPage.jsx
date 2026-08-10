@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { adminGetRequest, adminApproveRequest, adminRejectRequest, adminEditRequest } from "../../services/eventService";
 import { ConfirmationModal } from "../../components/Modal";
 import { formatTime12h } from "../../utils/timeFormatter";
+import { audienceLabel } from "../../utils/charusatData";
 
 const BASE_URL = "http://localhost:5000";
 
@@ -488,18 +489,28 @@ export default function AdminRequestDetailPage() {
         )}
 
         {/* Audience */}
-        {data.audience?.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Target Audience</p>
-            <div className="flex flex-wrap gap-2">
-              {data.audience.map((a, i) => (
-                <span key={i} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                  {a.audience_type}: {a.audience_value}
-                </span>
-              ))}
+        <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Target Audience</p>
+          {data.audience?.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {data.audience.map((a, i) => {
+                const label = a.audience_type === "OTHER"
+                  ? (a.custom_audience || null)
+                  : audienceLabel(a);
+                if (!label) return null;
+                return (
+                  <div key={i} className="px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg">
+                    <span className="text-xs font-medium text-blue-800">
+                      {a.audience_type === "OTHER" ? `Other → ${label}` : label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-xs text-gray-400 italic">Target audience information unavailable.</p>
+          )}
+        </div>
       </div>
 
       <ConfirmationModal

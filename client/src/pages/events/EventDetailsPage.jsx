@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { getEventRequest, getPublishedEvents, toggleBookmark, getBookmarks } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
+import { audienceLabel } from "../../utils/charusatData";
 
 const BASE_URL = "http://localhost:5000";
 
@@ -161,12 +162,18 @@ export default function EventDetailsPage() {
           {data.audience?.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-3">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Target Audience</h3>
-              <div className="flex flex-wrap gap-2">
-                {data.audience.map((aud, i) => (
-                  <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-100">
-                    👥 {aud.audience_type}: {aud.audience_value}
-                  </span>
-                ))}
+              <div className="flex flex-col gap-2">
+                {data.audience.map((aud, i) => {
+                  const label = aud.audience_type === "OTHER"
+                    ? (aud.custom_audience || null)
+                    : audienceLabel(aud);
+                  if (!label) return null;
+                  return (
+                    <span key={i} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
+                      👥 {aud.audience_type === "OTHER" ? `Other → ${label}` : label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

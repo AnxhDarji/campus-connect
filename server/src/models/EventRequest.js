@@ -3,8 +3,11 @@ import { v4 as uuidv4 } from "uuid";
 
 const audienceSchema = new mongoose.Schema(
   {
-    audience_type: { type: String, required: true, enum: ["College", "Department", "Year"] },
-    audience_value: { type: String, required: true },
+    audience_type: { type: String, required: true, enum: ["COLLEGE", "PROGRAM", "YEAR", "OTHER"] },
+    college_id: { type: String, default: null },
+    program_id: { type: String, default: null },
+    year: { type: String, default: null },
+    custom_audience: { type: String, default: null },
   },
   { _id: false }
 );
@@ -41,6 +44,7 @@ const eventRequestSchema = new mongoose.Schema(
     organization_name: { type: String, trim: true, default: null },
     contact_number: { type: String, required: true },
     email: { type: String, required: true, lowercase: true, trim: true },
+    organization_email: { type: String, required: true, lowercase: true, trim: true },
 
     // Basic Info
     title: { type: String, required: true, trim: true, minlength: 5, maxlength: 120 },
@@ -84,6 +88,7 @@ const eventRequestSchema = new mongoose.Schema(
 
     // Audience
     audience: { type: [audienceSchema], default: [] },
+    audience_v2: { type: Boolean, default: true },
 
     // Status & Lifecycle
     status: {

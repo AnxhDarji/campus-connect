@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getEventRequest } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
+import { audienceLabel } from "../../utils/charusatData";
 
 const Row = ({ label, value }) =>
   value ? (
@@ -91,6 +92,25 @@ export default function ViewEventPage() {
             <p className="text-sm font-semibold text-blue-600">{data.status}</p>
             <p className="text-xs text-gray-400 mt-1 font-mono">ID: {data.event_id}</p>
           </div>
+
+          {data.audience?.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Target Audience</p>
+              <div className="flex flex-col gap-2">
+                {data.audience.map((a, i) => {
+                  const label = a.audience_type === "OTHER"
+                    ? (a.custom_audience || null)
+                    : audienceLabel(a);
+                  if (!label) return null;
+                  return (
+                    <span key={i} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
+                      {a.audience_type === "OTHER" ? `Other → ${label}` : label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
