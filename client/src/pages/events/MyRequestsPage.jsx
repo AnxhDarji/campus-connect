@@ -12,6 +12,13 @@ const STATUS_COLORS = {
   "Archived": "bg-gray-100 text-gray-500",
 };
 
+const LIFECYCLE_COLORS = {
+  UPCOMING: "bg-sky-100 text-sky-700",
+  ONGOING: "bg-emerald-100 text-emerald-700",
+  AWAITING_COMPLETION: "bg-orange-100 text-orange-700",
+  COMPLETED: "bg-green-100 text-green-700",
+};
+
 export default function MyRequestsPage() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
@@ -99,9 +106,16 @@ export default function MyRequestsPage() {
                       Submitted: {new Date(r.created_at).toLocaleDateString()} · Updated: {new Date(r.updated_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[r.status] || "bg-gray-100 text-gray-500"}`}>
-                    {r.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[r.status] || "bg-gray-100 text-gray-500"}`}>
+                      {r.status}
+                    </span>
+                    {r.lifecycle_status && (
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${LIFECYCLE_COLORS[r.lifecycle_status] || "bg-gray-100 text-gray-500"}`}>
+                        {r.lifecycle_status.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50">
@@ -127,6 +141,28 @@ export default function MyRequestsPage() {
                         className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
                       >
                         {deletingId === r._id ? "Deleting..." : "Delete"}
+                      </button>
+                    </>
+                  )}
+                  {r.lifecycle_status === "AWAITING_COMPLETION" && (
+                    <>
+                      <span className="text-gray-200">|</span>
+                      <button
+                        onClick={() => navigate(`/events/${r._id}/complete`)}
+                        className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
+                      >
+                        Complete Event
+                      </button>
+                    </>
+                  )}
+                  {r.lifecycle_status === "COMPLETED" && (
+                    <>
+                      <span className="text-gray-200">|</span>
+                      <button
+                        onClick={() => navigate(`/events/${r._id}/report`)}
+                        className="text-xs text-green-600 hover:text-green-700 font-semibold"
+                      >
+                        View Report
                       </button>
                     </>
                   )}

@@ -11,6 +11,8 @@ import EditEventPage from './pages/events/EditEventPage';
 import EventDetailsPage from './pages/events/EventDetailsPage';
 import EventsFeedPage from './pages/events/EventsFeedPage';
 import FestivalPage from './pages/events/FestivalPage';
+import EventCompletionPage from './pages/events/EventCompletionPage';
+import EventReportPage from './pages/events/EventReportPage';
 import ProfilePage from './pages/ProfilePage';
 import MainLayout from './components/MainLayout';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="/events/my" element={<MyRequestsPage />} />
           <Route path="/events/:id" element={<EventDetailsPage />} />
           <Route path="/events/:id/edit" element={<EditEventPage />} />
+          <Route path="/events/:id/complete" element={<EventCompletionPage />} />
+          <Route path="/events/:id/report" element={<EventReportPage />} />
           <Route path="/festivals/:festivalName" element={<FestivalPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>

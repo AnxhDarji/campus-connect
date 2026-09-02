@@ -1,15 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { getEventRequest, getPublishedEvents, toggleBookmark, getBookmarks } from "../../services/eventService";
+import { getEventRequest, getPublishedEvents, toggleBookmark, getBookmarks, getEventCompletion } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
+import { useAuth } from "../../context/AuthContext";
 
 const BASE_URL = "http://localhost:5000";
+
+const LIFECYCLE_COLORS = {
+  UPCOMING: "bg-sky-100 text-sky-700",
+  ONGOING: "bg-emerald-100 text-emerald-700",
+  AWAITING_COMPLETION: "bg-orange-100 text-orange-700",
+  COMPLETED: "bg-green-100 text-green-700",
+};
 
 export default function EventDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [completionData, setCompletionData] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,23 +27,21 @@ export default function EventDetailsPage() {
 
   useEffect(() => {
     setLoading(true);
-    // Fetch Event details
     getEventRequest(id)
       .then((res) => {
         const eventData = res.data.data;
         setData(eventData);
-        
-        // Fetch similar events in the same category
         getPublishedEvents({ category: eventData.category, limit: 4 })
           .then((simRes) => {
             setSimilar((simRes.data.data || []).filter(e => e._id !== id).slice(0, 3));
           })
           .catch(() => {});
+        // Fetch completion data (works for owner + admin; silently ignored for others)
+        getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => {});
       })
       .catch(() => navigate("/events"))
       .finally(() => setLoading(false));
 
-    // Fetch bookmarks
     getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => {});
   }, [id, navigate]);
 
@@ -66,6 +74,12 @@ export default function EventDetailsPage() {
   if (!data) return null;
 
   const isBookmarked = bookmarks.includes(data._id);
+  const isOwner = user && data.submitted_by && (
+    (typeof data.submitted_by === "string" ? data.submitted_by : data.submitted_by?._id)?.toString() === user.id?.toString()
+  );
+  const lifecycle = completionData?.lifecycle_status ?? null;
+  const completion = completionData?.completion ?? null;
+  const report = completionData?.report ?? null;
 
   return (
     <div className="space-y-8">
@@ -147,6 +161,11 @@ export default function EventDetailsPage() {
                 <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest mt-2">
                   🏢 {data.department_id?.name || "All Departments"} {data.club_name && `· 🎭 ${data.club_name}`}
                 </p>
+                {lifecycle && (
+                  <span className={`inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full ${LIFECYCLE_COLORS[lifecycle] || "bg-gray-100 text-gray-500"}`}>
+                    {lifecycle.replace(/_/g, " ")}
+                  </span>
+                )}
               </div>
 
               {data.description && (
@@ -207,6 +226,119 @@ export default function EventDetailsPage() {
                   </Link>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ── EVENT COMPLETION SECTION (owner only, after event ends) ── */}
+          {isOwner && lifecycle === "AWAITING_COMPLETION" && (
+            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-500 text-lg">⏳</span>
+                <h3 className="text-sm font-bold text-orange-800">Event Completion Required</h3>
+              </div>
+              <p className="text-xs text-orange-700">Your event has ended. Please submit the completion details so an AI report can be generated.</p>
+              <button
+                onClick={() => navigate(`/events/${id}/complete`)}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition"
+              >
+                Complete Event →
+              </button>
+            </div>
+          )}
+
+          {/* ── COMPLETION DATA (visible after COMPLETED) ── */}
+          {completion && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Event Completion</h3>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-medium">Actual Attendance</p>
+                  <p className="text-gray-800 font-semibold text-sm">{completion.actual_attendance}</p>
+                </div>
+                {completion.key_highlights && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">Key Highlights</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">{completion.key_highlights}</p>
+                  </div>
+                )}
+                {completion.winners_achievements && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">Winners / Achievements</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">{completion.winners_achievements}</p>
+                  </div>
+                )}
+                {completion.special_guests && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">Special Guests</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">{completion.special_guests}</p>
+                  </div>
+                )}
+                {completion.event_outcomes && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">Event Outcomes</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">{completion.event_outcomes}</p>
+                  </div>
+                )}
+              </div>
+              {completion.photos?.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Event Photos</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {completion.photos.map((url, i) => (
+                      <a key={i} href={`${BASE_URL}${url}`} target="_blank" rel="noreferrer">
+                        <img src={`${BASE_URL}${url}`} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── AI REPORT SECTION ── */}
+          {report && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Event Report</h3>
+                {report.generation_status === "GENERATED" && <span className="text-xs text-green-600 font-semibold">Generated ✓</span>}
+                {report.generation_status === "GENERATING" && <span className="text-xs text-amber-500 font-semibold animate-pulse">Generating...</span>}
+                {report.generation_status === "FAILED" && <span className="text-xs text-red-500 font-semibold">Failed</span>}
+              </div>
+              {report.generation_status === "GENERATED" && report.report_data && (
+                <div className="space-y-4 text-sm">
+                  {report.report_data.eventOverview && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Event Overview</p><p className="text-gray-700">{report.report_data.eventOverview}</p></div>
+                  )}
+                  {report.report_data.participationSummary && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Participation Summary</p><p className="text-gray-700">{report.report_data.participationSummary}</p></div>
+                  )}
+                  {report.report_data.keyHighlights?.length > 0 && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Key Highlights</p><ul className="list-disc list-inside space-y-1">{report.report_data.keyHighlights.map((h, i) => <li key={i} className="text-gray-700">{h}</li>)}</ul></div>
+                  )}
+                  {report.report_data.achievements?.length > 0 && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Achievements</p><ul className="list-disc list-inside space-y-1">{report.report_data.achievements.map((a, i) => <li key={i} className="text-gray-700">{a}</li>)}</ul></div>
+                  )}
+                  {report.report_data.eventOutcomes?.length > 0 && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Event Outcomes</p><ul className="list-disc list-inside space-y-1">{report.report_data.eventOutcomes.map((o, i) => <li key={i} className="text-gray-700">{o}</li>)}</ul></div>
+                  )}
+                  {report.report_data.conclusion && (
+                    <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-1">Conclusion</p><p className="text-gray-700">{report.report_data.conclusion}</p></div>
+                  )}
+                </div>
+              )}
+              {report.generation_status === "GENERATING" && (
+                <p className="text-xs text-gray-400">The AI report is being generated...</p>
+              )}
+              {report.generation_status === "FAILED" && isOwner && (
+                <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs text-blue-600 hover:underline">Go to report page to retry →</button>
+              )}
+            </div>
+          )}
+
+          {/* Owner quick-link to full report page */}
+          {isOwner && lifecycle === "COMPLETED" && (
+            <div className="flex justify-end">
+              <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs text-blue-600 hover:underline font-medium">View full report page →</button>
             </div>
           )}
         </div>

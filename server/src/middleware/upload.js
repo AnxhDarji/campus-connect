@@ -43,6 +43,12 @@ export const uploadBrochure = multer({
   fileFilter: fileFilter(BROCHURE_TYPES),
 }).single("brochure");
 
+export const uploadCompletionPhotos = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: fileFilter(POSTER_TYPES),
+}).array("photos", 10); // max 10 photos
+
 export const multerErrorHandler = (err, req, res, next) => {
   if (err instanceof multer.MulterError || err.message?.startsWith("Invalid file type")) {
     return res.status(400).json({ success: false, message: err.message });

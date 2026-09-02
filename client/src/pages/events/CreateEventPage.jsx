@@ -261,7 +261,7 @@ export default function CreateEventPage() {
           value={form.description}
           onChange={(e) => handleChange("description", e.target.value)}
           rows={4}
-          placeholder="Describe the event... (min 50 words without poster, 20 words with poster)"
+          placeholder="Describe the event... (optional)"
           className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}

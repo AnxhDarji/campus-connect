@@ -40,6 +40,15 @@ export const toggleBookmark = (id) => api.post(`/api/event-requests/${id}/bookma
 export const getBookmarks = () => api.get("/api/event-requests/my-bookmarks");
 export const getFestivalEvents = (name) => api.get(`/api/event-requests/festivals/${name}`);
 
+// Completion
+export const getEventCompletion = (id, bust = false) =>
+  api.get(`/api/event-requests/${id}/completion`, bust ? { params: { _t: Date.now() } } : {});
+export const submitEventCompletion = (id, formData) =>
+  api.post(`/api/event-requests/${id}/completion`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const retryReportGeneration = (id) => api.post(`/api/event-requests/${id}/completion/report/retry`);
+
 // Admin
 export const adminGetStats = () => api.get("/api/admin/event-requests/stats");
 export const adminListRequests = (params) => api.get("/api/admin/event-requests", { params });

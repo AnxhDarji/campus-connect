@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { adminGetRequest, adminApproveRequest, adminRejectRequest, adminEditRequest } from "../../services/eventService";
+import { adminGetRequest, adminApproveRequest, adminRejectRequest, adminEditRequest, getEventCompletion } from "../../services/eventService";
 import { ConfirmationModal } from "../../components/Modal";
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
@@ -25,6 +25,7 @@ export default function AdminRequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [completionData, setCompletionData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -65,6 +66,7 @@ export default function AdminRequestDetailPage() {
       })
       .catch(() => navigate("/admin/all"))
       .finally(() => setLoading(false));
+    getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => {});
   };
 
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
@@ -512,6 +514,100 @@ export default function AdminRequestDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Event Completion (admin read-only view) */}
+      {completionData?.completion && (
+        <div className="bg-white rounded-xl border border-gray-100 p-5 mt-4 space-y-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50 pb-2">Event Completion</p>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-medium">Actual Attendance</p>
+              <p className="text-gray-800 font-semibold text-sm">{completionData.completion.actual_attendance}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-medium">Submitted At</p>
+              <p className="text-gray-700">{new Date(completionData.completion.submitted_at).toLocaleString()}</p>
+            </div>
+            {completionData.completion.key_highlights && (
+              <div className="col-span-2">
+                <p className="text-[10px] text-gray-400 uppercase font-medium">Key Highlights</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{completionData.completion.key_highlights}</p>
+              </div>
+            )}
+            {completionData.completion.winners_achievements && (
+              <div className="col-span-2">
+                <p className="text-[10px] text-gray-400 uppercase font-medium">Winners / Achievements</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{completionData.completion.winners_achievements}</p>
+              </div>
+            )}
+            {completionData.completion.special_guests && (
+              <div className="col-span-2">
+                <p className="text-[10px] text-gray-400 uppercase font-medium">Special Guests</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{completionData.completion.special_guests}</p>
+              </div>
+            )}
+            {completionData.completion.event_outcomes && (
+              <div className="col-span-2">
+                <p className="text-[10px] text-gray-400 uppercase font-medium">Event Outcomes</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{completionData.completion.event_outcomes}</p>
+              </div>
+            )}
+          </div>
+          {completionData.completion.photos?.length > 0 && (
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Event Photos</p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {completionData.completion.photos.map((url, i) => (
+                  <a key={i} href={`${BASE_URL}${url}`} target="_blank" rel="noreferrer">
+                    <img src={`${BASE_URL}${url}`} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Event Report (admin read-only view) */}
+      {completionData?.report && (
+        <div className="bg-white rounded-xl border border-gray-100 p-5 mt-4 space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">AI Event Report</p>
+            {completionData.report.generation_status === "GENERATED" && <span className="text-xs text-green-600 font-semibold">Generated ✓</span>}
+            {completionData.report.generation_status === "GENERATING" && <span className="text-xs text-amber-500 font-semibold">Generating...</span>}
+            {completionData.report.generation_status === "FAILED" && <span className="text-xs text-red-500 font-semibold">Failed</span>}
+          </div>
+          {completionData.report.generation_status === "GENERATED" && completionData.report.report_data && (
+            <div className="space-y-3 text-xs">
+              {completionData.report.report_data.eventOverview && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Event Overview</p><p className="text-gray-700">{completionData.report.report_data.eventOverview}</p></div>
+              )}
+              {completionData.report.report_data.participationSummary && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Participation Summary</p><p className="text-gray-700">{completionData.report.report_data.participationSummary}</p></div>
+              )}
+              {completionData.report.report_data.keyHighlights?.length > 0 && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Key Highlights</p><ul className="list-disc list-inside space-y-0.5">{completionData.report.report_data.keyHighlights.map((h, i) => <li key={i} className="text-gray-700">{h}</li>)}</ul></div>
+              )}
+              {completionData.report.report_data.achievements?.length > 0 && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Achievements</p><ul className="list-disc list-inside space-y-0.5">{completionData.report.report_data.achievements.map((a, i) => <li key={i} className="text-gray-700">{a}</li>)}</ul></div>
+              )}
+              {completionData.report.report_data.eventOutcomes?.length > 0 && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Event Outcomes</p><ul className="list-disc list-inside space-y-0.5">{completionData.report.report_data.eventOutcomes.map((o, i) => <li key={i} className="text-gray-700">{o}</li>)}</ul></div>
+              )}
+              {completionData.report.report_data.conclusion && (
+                <div><p className="text-[10px] text-gray-400 uppercase font-medium mb-0.5">Conclusion</p><p className="text-gray-700">{completionData.report.report_data.conclusion}</p></div>
+              )}
+              <p className="text-[10px] text-gray-400">Generated on {new Date(completionData.report.generated_at).toLocaleString()}</p>
+            </div>
+          )}
+          {completionData.report.generation_status === "GENERATING" && (
+            <p className="text-xs text-gray-400">Report is being generated...</p>
+          )}
+          {completionData.report.generation_status === "FAILED" && (
+            <p className="text-xs text-red-500">Report generation failed. The organizer can retry from their event page.</p>
+          )}
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={showApproveConfirm}

@@ -1,5 +1,6 @@
 import EventRequest from "../models/EventRequest.js";
 import User from "../models/User.js";
+import { getLifecycleStatus } from "../utils/eventLifecycle.js";
 import sanitizeHtml from "sanitize-html";
 
 const sanitize = (str) => (str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }) : str);
@@ -108,24 +109,17 @@ export const createEventRequest = async (req, res, next) => {
 // GET /api/event-requests/my
 export const getMyRequests = async (req, res, next) => {
   try {
-    // Auto delete completed events
-    await EventRequest.updateMany(
-      { 
-        is_deleted: false,
-        end_date: { $lt: new Date() } 
-      },
-      { 
-        is_deleted: true,
-        deleted_at: new Date()
-      }
-    );
-
     const requests = await EventRequest.find({ submitted_by: req.user.id, is_deleted: false })
       .populate("department_id", "name code")
-      .select("event_id title category department_id status created_at updated_at")
+      .select("event_id title category department_id status completion_status start_date end_date start_time end_time created_at updated_at")
       .sort({ created_at: -1 });
 
-    res.json({ success: true, data: requests });
+    const data = requests.map((r) => ({
+      ...r.toObject(),
+      lifecycle_status: getLifecycleStatus(r),
+    }));
+
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -216,18 +210,6 @@ export const deleteEventRequest = async (req, res, next) => {
 // GET /api/event-requests (Public list of approved/published events)
 export const listPublishedEvents = async (req, res, next) => {
   try {
-    // Auto delete completed events
-    await EventRequest.updateMany(
-      { 
-        is_deleted: false,
-        end_date: { $lt: new Date() } 
-      },
-      { 
-        is_deleted: true,
-        deleted_at: new Date()
-      }
-    );
-
     const { category, department_id, search, archive, feedType, page = 1, limit = 20 } = req.query;
 
     const query = { is_deleted: false };

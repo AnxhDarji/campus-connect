@@ -74,14 +74,6 @@ export function validateEventForm(form) {
   if (!form.category) errors.category = "Category is required.";
   if (!form.department_id) errors.department_id = "Department is required.";
 
-  if (!form.description && !form.poster_url) {
-    errors.description = "Either a description or a poster is required.";
-  } else if (form.description) {
-    const words = form.description.trim().split(/\s+/).length;
-    const min = form.poster_url ? 20 : 50;
-    if (words < min) errors.description = `Description must be at least ${min} words.`;
-  }
-
   const startErr = validateStartDate(form.start_date);
   if (startErr) errors.start_date = startErr;
 

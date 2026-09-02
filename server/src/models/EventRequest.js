@@ -97,6 +97,13 @@ const eventRequestSchema = new mongoose.Schema(
       default: "Pending Approval",
     },
 
+    // Completion lifecycle (set by completion submission)
+    completion_status: {
+      type: String,
+      enum: ["AWAITING_COMPLETION", "COMPLETED"],
+      default: null,
+    },
+
     // Review Workflow
     approved_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     approved_at: { type: Date, default: null },
