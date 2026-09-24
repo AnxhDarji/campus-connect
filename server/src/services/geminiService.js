@@ -29,7 +29,18 @@ export async function generateEventReport(prompt) {
     },
   });
 
-  const result = await model.generateContent(prompt);
+  let result;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      result = await model.generateContent(prompt);
+      break;
+    } catch (error) {
+      const isTransient = /\[(429|5\d\d)\b/.test(error.message || "");
+      if (!isTransient || attempt === 2) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+  }
+
   const text = result.response.text();
 
   let parsed;

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getFestivalEvents } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 export default function FestivalPage() {
   const { festivalName } = useParams();

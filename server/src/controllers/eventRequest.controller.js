@@ -219,10 +219,20 @@ export const listPublishedEvents = async (req, res, next) => {
     if (search) query.title = { $regex: search, $options: "i" };
 
     if (archive === "true") {
-      query.status = "Archived";
+      query.$or = [
+        { status: "Archived" },
+        { completion_status: "COMPLETED" },
+      ];
     } else {
       query.status = { $in: ["Approved", "Published"] };
-      query.end_date = { $gte: new Date() };
+      query.completion_status = { $ne: "COMPLETED" };
+      const now = new Date();
+      const startOfToday = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+      ));
+      query.end_date = { $gte: startOfToday };
     }
 
     if (feedType === "featured") {

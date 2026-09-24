@@ -28,7 +28,14 @@ function combineDateAndTime(dateVal, timeStr) {
   const d = new Date(dateVal);
   if (timeStr) {
     const [h, m] = timeStr.split(":").map(Number);
-    d.setUTCHours(h, m, 0, 0);
+    const indiaTime = Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+      h,
+      m,
+    );
+    return new Date(indiaTime - 5.5 * 60 * 60 * 1000);
   }
   return d;
 }
