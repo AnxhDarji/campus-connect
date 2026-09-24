@@ -35,7 +35,14 @@ export const getCompletion = async (req, res, next) => {
       });
     }
 
-    const completion = await EventCompletion.findOne({ event_id: event._id });
+    let completion = await EventCompletion.findOne({ event_id: event._id });
+    if (completion && completion.ai_generation_status === "GENERATING") {
+      const lastUpdate = completion.updatedAt || completion.updated_at || completion.createdAt;
+      if (lastUpdate && Date.now() - new Date(lastUpdate).getTime() > 20 * 1000) {
+        completion.ai_generation_status = "GENERATION_FAILED";
+        await completion.save();
+      }
+    }
     const report = await EventReport.findOne({ event_id: event._id });
 
     res.json({
@@ -158,6 +165,133 @@ export const submitCompletion = async (req, res, next) => {
     next(err);
   } finally {
     session.endSession();
+  }
+};
+
+import { generateAIPoster, generatePoster1, generatePoster2 } from "../services/geminiImageService.js";
+
+// POST /api/event-requests/:id/completion/generate-poster
+export const generatePoster = async (req, res, next) => {
+  try {
+    const event = await EventRequest.findOne({ _id: req.params.id, is_deleted: false })
+      .populate("department_id", "name code");
+    if (!event) return res.status(404).json({ success: false, message: "Event not found." });
+
+    if (!isAuthorized(event, req.user.id, req.user.role)) {
+      return res.status(403).json({ success: false, message: "Not authorized." });
+    }
+
+    const completion = await EventCompletion.findOne({ event_id: event._id });
+    if (!completion) {
+      return res.status(400).json({ success: false, message: "Event completion details must be submitted before generating a poster." });
+    }
+
+    completion.ai_generation_status = "GENERATING";
+    await completion.save();
+
+    try {
+      const { posterUrl, activityPosterUrl, prompt } = await generateAIPoster(event, completion);
+      completion.generated_poster_url = posterUrl;
+      completion.generated_activity_poster_url = activityPosterUrl;
+      completion.generation_prompt = prompt;
+      completion.ai_generation_status = "GENERATED";
+      completion.review_status = "PENDING";
+      await completion.save();
+
+      res.json({
+        success: true,
+        message: "AI Posters generated successfully.",
+        data: completion,
+      });
+    } catch (genErr) {
+      completion.ai_generation_status = "GENERATION_FAILED";
+      await completion.save();
+      return res.status(500).json({ success: false, message: genErr.message || "Poster generation failed." });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/event-requests/:id/completion/regenerate-poster1
+export const regeneratePoster1 = async (req, res, next) => {
+  try {
+    const event = await EventRequest.findOne({ _id: req.params.id, is_deleted: false })
+      .populate("department_id", "name code");
+    if (!event) return res.status(404).json({ success: false, message: "Event not found." });
+
+    if (!isAuthorized(event, req.user.id, req.user.role)) {
+      return res.status(403).json({ success: false, message: "Not authorized." });
+    }
+
+    const completion = await EventCompletion.findOne({ event_id: event._id });
+    if (!completion) return res.status(404).json({ success: false, message: "Completion not found." });
+
+    const posterUrl = await generatePoster1(event, completion);
+    completion.generated_poster_url = posterUrl;
+    completion.ai_generation_status = "GENERATED";
+    await completion.save();
+
+    res.json({ success: true, message: "Poster 1 regenerated.", data: completion });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/event-requests/:id/completion/regenerate-poster2
+export const regeneratePoster2 = async (req, res, next) => {
+  try {
+    const event = await EventRequest.findOne({ _id: req.params.id, is_deleted: false })
+      .populate("department_id", "name code");
+    if (!event) return res.status(404).json({ success: false, message: "Event not found." });
+
+    if (!isAuthorized(event, req.user.id, req.user.role)) {
+      return res.status(403).json({ success: false, message: "Not authorized." });
+    }
+
+    const completion = await EventCompletion.findOne({ event_id: event._id });
+    if (!completion) return res.status(404).json({ success: false, message: "Completion not found." });
+
+    const { activityPosterUrl, prompt } = await generatePoster2(event, completion);
+    completion.generated_activity_poster_url = activityPosterUrl;
+    completion.generation_prompt = prompt;
+    completion.ai_generation_status = "GENERATED";
+    await completion.save();
+
+    res.json({ success: true, message: "Poster 2 regenerated.", data: completion });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/event-requests/:id/completion/approve-poster
+export const approvePoster = async (req, res, next) => {
+  try {
+    const event = await EventRequest.findOne({ _id: req.params.id, is_deleted: false });
+    if (!event) return res.status(404).json({ success: false, message: "Event not found." });
+
+    if (!ADMIN_ROLES.includes(req.user.role) && event.submitted_by.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ success: false, message: "Only authorized admin/faculty can approve event posters." });
+    }
+
+    const completion = await EventCompletion.findOne({ event_id: event._id });
+    if (!completion) return res.status(404).json({ success: false, message: "Event completion record not found." });
+
+    completion.ai_generation_status = "APPROVED";
+    completion.review_status = "APPROVED";
+    completion.reviewed_by = req.user.id;
+    completion.reviewed_at = new Date();
+    if (req.body.review_notes) completion.review_notes = req.body.review_notes;
+
+    await completion.save();
+
+    res.json({
+      success: true,
+      message: "Event poster approved successfully.",
+      data: completion,
+    });
+  } catch (err) {
+    next(err);
   }
 };
 

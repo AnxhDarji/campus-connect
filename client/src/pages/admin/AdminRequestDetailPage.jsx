@@ -5,7 +5,7 @@ import { ConfirmationModal } from "../../components/Modal";
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
 
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = "http://localhost:5000";
 
 const Row = ({ label, value }) =>
   value ? (
@@ -66,7 +66,7 @@ export default function AdminRequestDetailPage() {
       })
       .catch(() => navigate("/admin/all"))
       .finally(() => setLoading(false));
-    getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => {});
+    getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => { });
   };
 
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);

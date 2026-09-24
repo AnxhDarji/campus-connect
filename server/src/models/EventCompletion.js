@@ -24,6 +24,24 @@ const eventCompletionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    // AI Poster & Review Workflow fields
+    ai_generation_status: {
+      type: String,
+      enum: ["NOT_GENERATED", "GENERATING", "GENERATED", "APPROVED", "REGENERATE", "GENERATION_FAILED"],
+      default: "NOT_GENERATED",
+    },
+    generated_poster_url: { type: String, default: null },
+    generated_activity_poster_url: { type: String, default: null },
+    generation_prompt: { type: String, default: null },
+    review_status: {
+      type: String,
+      enum: ["PENDING", "APPROVED", "REJECTED"],
+      default: "PENDING",
+    },
+    reviewed_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    reviewed_at: { type: Date, default: null },
+    review_notes: { type: String, trim: true, default: null },
   },
   { timestamps: { createdAt: "submitted_at", updatedAt: "updated_at" } }
 );

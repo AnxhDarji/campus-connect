@@ -5,7 +5,7 @@ import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
 import { useAuth } from "../../context/AuthContext";
 
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = "http://localhost:5000";
 
 const LIFECYCLE_COLORS = {
   UPCOMING: "bg-sky-100 text-sky-700",
@@ -35,14 +35,14 @@ export default function EventDetailsPage() {
           .then((simRes) => {
             setSimilar((simRes.data.data || []).filter(e => e._id !== id).slice(0, 3));
           })
-          .catch(() => {});
+          .catch(() => { });
         // Fetch completion data (works for owner + admin; silently ignored for others)
-        getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => {});
+        getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => { });
       })
       .catch(() => navigate("/events"))
       .finally(() => setLoading(false));
 
-    getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => {});
+    getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => { });
   }, [id, navigate]);
 
   const showToast = (msg) => {
@@ -103,11 +103,10 @@ export default function EventDetailsPage() {
         <div className="flex gap-2">
           <button
             onClick={handleToggleBookmark}
-            className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              isBookmarked
-                ? "bg-blue-50 border-blue-200 text-blue-600 shadow-sm"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
-            }`}
+            className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${isBookmarked
+              ? "bg-blue-50 border-blue-200 text-blue-600 shadow-sm"
+              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+              }`}
           >
             <svg className="w-4 h-4" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -128,10 +127,10 @@ export default function EventDetailsPage() {
 
       {/* Main Grid View */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left column - main content */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Main Card: Image / Title */}
           <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
             <div className="relative aspect-video bg-slate-900">
@@ -347,11 +346,11 @@ export default function EventDetailsPage() {
 
         {/* Right column - sidebar details */}
         <div className="space-y-6">
-          
+
           {/* Scheduling & Venue Card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Event Schedule & Location</h3>
-            
+
             <div className="space-y-4 text-xs">
               <div className="flex gap-3">
                 <span className="text-xl">📅</span>
@@ -396,7 +395,7 @@ export default function EventDetailsPage() {
           {/* Registration Details */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4 text-center">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider text-left border-b border-gray-50 pb-2">Registration</h3>
-            
+
             {data.registration_required && registrationOpen ? (
               <div className="space-y-4">
                 {data.registration_deadline && (

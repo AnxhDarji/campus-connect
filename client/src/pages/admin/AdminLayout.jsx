@@ -8,6 +8,7 @@ const NAV = [
   { label: "Pending", path: "/admin/pending", icon: "⏳" },
   { label: "Approved", path: "/admin/approved", icon: "✅" },
   { label: "Rejected", path: "/admin/rejected", icon: "✗" },
+  { label: "Completion & AI Posters", path: "/admin/completed", icon: "🖼️" },
   { label: "All Requests", path: "/admin/all", icon: "☰" },
 ];
 

@@ -5,6 +5,8 @@ import {
   getCompletion,
   submitCompletion,
   retryReportGeneration,
+  generatePoster,
+  approvePoster,
 } from "../controllers/eventCompletion.controller.js";
 
 const router = Router({ mergeParams: true });
@@ -21,5 +23,8 @@ const photosUpload = (req, res, next) => {
 router.get("/", ...guard, getCompletion);
 router.post("/", ...guard, photosUpload, submitCompletion);
 router.post("/report/retry", ...guard, retryReportGeneration);
+router.post("/generate-poster", ...guard, generatePoster);
+router.post("/regenerate-poster", ...guard, generatePoster);
+router.patch("/approve-poster", ...guard, approvePoster);
 
 export default router;

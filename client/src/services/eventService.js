@@ -48,6 +48,10 @@ export const submitEventCompletion = (id, formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 export const retryReportGeneration = (id) => api.post(`/api/event-requests/${id}/completion/report/retry`);
+export const generateAIPoster = (id) => api.post(`/api/event-requests/${id}/completion/generate-poster`);
+export const regeneratePoster1 = (id) => api.post(`/api/event-requests/${id}/completion/regenerate-poster1`);
+export const regeneratePoster2 = (id) => api.post(`/api/event-requests/${id}/completion/regenerate-poster2`);
+export const approveAIPoster = (id, data = {}) => api.patch(`/api/event-requests/${id}/completion/approve-poster`, data);
 
 // Admin
 export const adminGetStats = () => api.get("/api/admin/event-requests/stats");

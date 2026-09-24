@@ -10,20 +10,11 @@ export default function DashboardPage() {
     {
       id: "announcements",
       title: "Announcements & Events",
-      description: "Submit event requests, browse approved campus activities, register for workshops, and track what's happening around university.",
+      description: "Submit event requests, browse approved campus activities, register for workshops, submit completion reports, and track what's happening around university.",
       icon: "📢",
       comingSoon: false,
       buttonText: "Explore Module",
       action: () => navigate("/events")
-    },
-    {
-      id: "lost-found",
-      title: "Lost & Found",
-      description: "Lost something on campus or found a misplaced item? Report it and track lost property instantly to return items to their owners.",
-      icon: "🔍",
-      comingSoon: true,
-      buttonText: "Coming Soon",
-      action: () => setPlaceholderModule("Lost & Found")
     },
     {
       id: "news",
@@ -49,7 +40,7 @@ export default function DashboardPage() {
             Welcome to Campus Connect, <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">{user?.fullName}</span>!
           </h1>
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Your centralized hub for all university modules. Stay updated with campus events, report lost & found items, and read the latest CHARUSAT news.
+            Your centralized hub for all university modules. Stay updated with campus events, submit event completions, and read the latest CHARUSAT news.
           </p>
         </div>
       </div>

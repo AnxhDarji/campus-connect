@@ -16,6 +16,10 @@ import {
   getCompletion,
   submitCompletion,
   retryReportGeneration,
+  generatePoster,
+  regeneratePoster1,
+  regeneratePoster2,
+  approvePoster,
 } from "../controllers/eventCompletion.controller.js";
 import { uploadCompletionPhotos, multerErrorHandler } from "../middleware/upload.js";
 
@@ -40,6 +44,10 @@ router.get("/festivals/:name", ...guard, getFestivalEvents);
 router.get("/:id/completion", ...guard, getCompletion);
 router.post("/:id/completion", ...guard, photosUpload, submitCompletion);
 router.post("/:id/completion/report/retry", ...guard, retryReportGeneration);
+router.post("/:id/completion/generate-poster", ...guard, generatePoster);
+router.post("/:id/completion/regenerate-poster1", ...guard, regeneratePoster1);
+router.post("/:id/completion/regenerate-poster2", ...guard, regeneratePoster2);
+router.patch("/:id/completion/approve-poster", ...guard, approvePoster);
 
 // Dynamic :id routes
 router.get("/:id", ...guard, getEventRequest);

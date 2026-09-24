@@ -36,7 +36,7 @@ export default function FileUploadField({ label, accept, maxMB, onUpload, previe
           accept.includes("pdf") ? (
             <p className="text-xs text-green-600 font-medium">✓ PDF uploaded</p>
           ) : (
-            <img src={`http://localhost:5001${preview}`} alt="preview" className="max-h-32 mx-auto rounded object-contain" />
+            <img src={`http://localhost:5000${preview}`} alt="preview" className="max-h-32 mx-auto rounded object-contain" />
           )
         ) : (
           <p className="text-xs text-gray-400">Click to upload · {accept} · max {maxMB}MB</p>

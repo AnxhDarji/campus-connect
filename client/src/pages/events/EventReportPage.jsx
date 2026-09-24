@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getEventCompletion, retryReportGeneration } from "../../services/eventService";
+import { getEventCompletion, retryReportGeneration, generateAIPoster, regeneratePoster1, regeneratePoster2, approveAIPoster } from "../../services/eventService";
+import PosterOverlayPreview from "../../components/PosterOverlayPreview";
 
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = "http://localhost:5000";
 
 export default function EventReportPage() {
   const { id } = useParams();
@@ -23,13 +24,12 @@ export default function EventReportPage() {
     load();
   }, [load]);
 
-  // Poll while generating
+  // Poll while report or poster is generating
   useEffect(() => {
-    if (data?.report?.generation_status === "GENERATING") {
+    if (data?.report?.generation_status === "GENERATING" || data?.completion?.ai_generation_status === "GENERATING") {
       const timer = setTimeout(() => {
-        setLoading(true);
         load(true);
-      }, 4000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [data, load]);
@@ -185,6 +185,178 @@ export default function EventReportPage() {
             </div>
           )}
         </div>
+
+        {/* AI Poster Generation & Review Section */}
+        <AIPosterSection event={event} completion={completion} onUpdate={() => load(true)} />
+      </div>
+    </div>
+  );
+}
+
+function AIPosterSection({ event, completion, onUpdate }) {
+  const [generating, setGenerating] = useState(false);
+  const [generating1, setGenerating1] = useState(false);
+  const [generating2, setGenerating2] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [activeTab, setActiveTab] = useState("official"); // "official" or "activity"
+  const [msg, setMsg] = useState("");
+
+  if (!completion) return null;
+
+  const status = completion.ai_generation_status || "NOT_GENERATED";
+  const rawPosterUrl = activeTab === "official"
+    ? completion.generated_poster_url
+    : (completion.generated_activity_poster_url || completion.generated_poster_url);
+
+  const stamp = completion?.updatedAt || completion?.updated_at ? new Date(completion.updatedAt || completion.updated_at).getTime() : 1;
+  const currentPosterUrl = rawPosterUrl
+    ? `${rawPosterUrl}${rawPosterUrl.includes("?") ? "&" : "?"}_v=${stamp}`
+    : null;
+
+  const handleGenerateBoth = async () => {
+    setGenerating(true);
+    setMsg("");
+    try {
+      await generateAIPoster(event._id);
+      setMsg("Both posters generated successfully!");
+      onUpdate();
+    } catch (err) {
+      setMsg(err.response?.data?.message || err.message || "Failed to generate AI posters.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRegenPoster1 = async () => {
+    setGenerating1(true);
+    setMsg("");
+    try {
+      await regeneratePoster1(event._id);
+      setMsg("Poster 1 (Official Announcement) regenerated successfully!");
+      onUpdate();
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Failed to regenerate Poster 1.");
+    } finally {
+      setGenerating1(false);
+    }
+  };
+
+  const handleRegenPoster2 = async () => {
+    setGenerating2(true);
+    setMsg("");
+    try {
+      await regeneratePoster2(event._id);
+      setMsg("Poster 2 (Event Action Scene) regenerated successfully!");
+      onUpdate();
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Failed to regenerate Poster 2.");
+    } finally {
+      setGenerating2(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    setApproving(true);
+    setMsg("");
+    try {
+      await approveAIPoster(event._id);
+      setMsg("Posters approved successfully!");
+      onUpdate();
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Failed to approve posters.");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const isBusy = generating || generating1 || generating2;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+      <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+        <div>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Generated Event Posters</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Automated 2-poster suite (Official Announcement + Event Action & Highlights) powered by AI.</p>
+        </div>
+        <div>
+          {status === "APPROVED" && <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">APPROVED ✓</span>}
+          {status === "GENERATED" && <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">READY FOR REVIEW</span>}
+          {status === "GENERATING" && <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full animate-pulse">GENERATING...</span>}
+          {status === "GENERATION_FAILED" && <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">FAILED</span>}
+          {status === "NOT_GENERATED" && <span className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">NOT GENERATED</span>}
+        </div>
+      </div>
+
+      {/* Poster Switcher Tabs */}
+      <div className="flex justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("official")}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl border transition ${
+            activeTab === "official"
+              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+          }`}
+        >
+          📢 1. Official Event Poster
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("activity")}
+          className={`px-4 py-2 text-xs font-semibold rounded-xl border transition ${
+            activeTab === "activity"
+              ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+          }`}
+        >
+          🔥 2. Event Action & Highlights Poster
+        </button>
+      </div>
+
+      {msg && <p className={`text-xs ${msg.includes("failed") || msg.includes("Failed") ? "text-red-500" : "text-green-600"} font-medium text-center`}>{msg}</p>}
+
+      {/* Poster Preview */}
+      <div className="py-2">
+        <PosterOverlayPreview event={event} completion={completion} posterUrl={currentPosterUrl} posterType={activeTab} />
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-3 border-t border-gray-50">
+        {activeTab === "official" ? (
+          <button
+            onClick={handleRegenPoster1}
+            disabled={isBusy}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-60 flex items-center gap-2"
+          >
+            {generating1 ? "Generating Poster 1..." : "🔄 Regenerate Poster 1 Only"}
+          </button>
+        ) : (
+          <button
+            onClick={handleRegenPoster2}
+            disabled={isBusy}
+            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-60 flex items-center gap-2"
+          >
+            {generating2 ? "Generating Poster 2..." : "🔄 Regenerate Poster 2 (New Action Scene)"}
+          </button>
+        )}
+
+        <button
+          onClick={handleGenerateBoth}
+          disabled={isBusy}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-60 flex items-center gap-2"
+        >
+          {generating ? "Generating Both Posters..." : "✨ Regenerate Both Suite Posters"}
+        </button>
+
+        {status === "GENERATED" && (
+          <button
+            onClick={handleApprove}
+            disabled={approving || isBusy}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-60 flex items-center gap-1.5"
+          >
+            {approving ? "Approving..." : "✓ Approve Posters"}
+          </button>
+        )}
       </div>
     </div>
   );

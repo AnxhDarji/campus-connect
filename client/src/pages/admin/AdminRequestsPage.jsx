@@ -16,7 +16,7 @@ const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports
 const ORG_TYPES = ["Department", "Student Club", "College Committee", "Faculty", "External College", "Student Group", "Other"];
 const REQUESTER_ROLES = ["Event Manager", "Club Representative", "Volunteer Lead", "Media Team Member", "Faculty Coordinator", "Student Coordinator", "Department Representative", "External College Representative", "Student", "Other"];
 
-export default function AdminRequestsPage({ statusFilter, title }) {
+export default function AdminRequestsPage({ statusFilter, completionFilter, title }) {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [total, setTotal] = useState(0);
@@ -44,12 +44,13 @@ export default function AdminRequestsPage({ statusFilter, title }) {
     setLoading(true);
     const params = { page, limit: 15, ...filters };
     if (statusFilter) params.status = statusFilter;
+    if (completionFilter) params.completion_status = completionFilter;
     Object.keys(params).forEach((k) => { if (!params[k]) delete params[k]; });
     adminListRequests(params)
       .then((r) => { setRequests(r.data.data); setTotal(r.data.total); setPages(r.data.pages); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page, filters, statusFilter]);
+  }, [page, filters, statusFilter, completionFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -216,6 +217,17 @@ export default function AdminRequestsPage({ statusFilter, title }) {
                         >
                           View
                         </button>
+                        {r.completion_status === "COMPLETED" && (
+                          <>
+                            <span className="text-gray-200">|</span>
+                            <button
+                              onClick={() => navigate(`/events/${r._id}/report`)}
+                              className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                            >
+                              AI Poster & Report
+                            </button>
+                          </>
+                        )}
                         {r.status === "Pending Approval" && (
                           <>
                             <span className="text-gray-200">|</span>

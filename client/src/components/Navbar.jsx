@@ -18,7 +18,6 @@ export default function Navbar({ onShowPlaceholder }) {
   const links = [
     { label: "Home", path: "/dashboard", type: "route" },
     { label: "Announcements & Events", path: "/events", type: "route" },
-    { label: "Lost & Found", path: "lost-found", type: "placeholder" },
     { label: "CHARUSAT News", path: "news", type: "placeholder" },
     { label: "Profile", path: "/profile", type: "route" },
   ];

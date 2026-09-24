@@ -64,6 +64,7 @@ export default function App() {
           <Route path="pending" element={<AdminRequestsPage statusFilter="Pending Approval" title="Pending Requests" />} />
           <Route path="approved" element={<AdminRequestsPage statusFilter="Approved" title="Approved Requests" />} />
           <Route path="rejected" element={<AdminRequestsPage statusFilter="Rejected" title="Rejected Requests" />} />
+          <Route path="completed" element={<AdminRequestsPage statusFilter="Approved" completionFilter="COMPLETED" title="Completion & AI Posters" />} />
           <Route path="all" element={<AdminRequestsPage title="All Requests" />} />
           <Route path="requests/:id" element={<AdminRequestDetailPage />} />
         </Route>

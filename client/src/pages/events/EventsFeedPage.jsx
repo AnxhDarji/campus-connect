@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getPublishedEvents, toggleBookmark, getBookmarks, getDepartments } from "../../services/eventService";
 
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = "http://localhost:5000";
 
 const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports", "Cultural", "Competition", "Placement", "Festival", "Other"];
 
@@ -22,9 +22,9 @@ export default function EventsFeedPage() {
 
   useEffect(() => {
     // Load departments
-    getDepartments().then((r) => setDepartments(r.data.data || [])).catch(() => {});
+    getDepartments().then((r) => setDepartments(r.data.data || [])).catch(() => { });
     // Load user bookmarks
-    getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => {});
+    getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function EventsFeedPage() {
         .then((res) => {
           setEvents(res.data.data || []);
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoading(false));
       return;
     }
@@ -54,7 +54,7 @@ export default function EventsFeedPage() {
       .then((res) => {
         setEvents(res.data.data || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [search, category, department, activeTab]);
 
@@ -165,11 +165,10 @@ export default function EventsFeedPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-xs font-semibold border-b-2 cursor-pointer transition-all duration-200 -mb-px ${
-              activeTab === tab.id
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
+            className={`px-4 py-2 text-xs font-semibold border-b-2 cursor-pointer transition-all duration-200 -mb-px ${activeTab === tab.id
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
           >
             {tab.label}
           </button>
@@ -248,11 +247,10 @@ export default function EventsFeedPage() {
                   <div className="absolute top-3 right-3 flex gap-1">
                     <button
                       onClick={(e) => handleToggleBookmark(e, event._id)}
-                      className={`p-1.5 rounded-full backdrop-blur-sm transition cursor-pointer ${
-                        isBookmarked
-                          ? "bg-blue-600 text-white shadow"
-                          : "bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700 shadow-sm"
-                      }`}
+                      className={`p-1.5 rounded-full backdrop-blur-sm transition cursor-pointer ${isBookmarked
+                        ? "bg-blue-600 text-white shadow"
+                        : "bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700 shadow-sm"
+                        }`}
                     >
                       <svg className="w-3.5 h-3.5" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
