@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getEventCompletion, retryReportGeneration } from "../../services/eventService";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 export default function EventReportPage() {
   const { id } = useParams();
@@ -152,6 +152,9 @@ export default function EventReportPage() {
           {report?.generation_status === "FAILED" && (
             <div className="space-y-3">
               <p className="text-xs text-gray-500">Report generation failed. You can retry below.</p>
+              {report.error_message && (
+                <p className="text-xs text-red-500 break-words">Reason: {report.error_message}</p>
+              )}
               <button onClick={handleRetry} disabled={retrying}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-60">
                 {retrying ? "Retrying..." : "Retry Report Generation"}

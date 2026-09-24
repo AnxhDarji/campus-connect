@@ -5,7 +5,7 @@ import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
 import { useAuth } from "../../context/AuthContext";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 const LIFECYCLE_COLORS = {
   UPCOMING: "bg-sky-100 text-sky-700",
@@ -74,10 +74,12 @@ export default function EventDetailsPage() {
   if (!data) return null;
 
   const isBookmarked = bookmarks.includes(data._id);
+  const currentUserId = user?._id || user?.id;
   const isOwner = user && data.submitted_by && (
-    (typeof data.submitted_by === "string" ? data.submitted_by : data.submitted_by?._id)?.toString() === user.id?.toString()
+    (typeof data.submitted_by === "string" ? data.submitted_by : data.submitted_by?._id)?.toString() === currentUserId?.toString()
   );
   const lifecycle = completionData?.lifecycle_status ?? null;
+  const registrationOpen = lifecycle === "UPCOMING" || lifecycle === "ONGOING";
   const completion = completionData?.completion ?? null;
   const report = completionData?.report ?? null;
 
@@ -395,7 +397,7 @@ export default function EventDetailsPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4 text-center">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider text-left border-b border-gray-50 pb-2">Registration</h3>
             
-            {data.registration_required ? (
+            {data.registration_required && registrationOpen ? (
               <div className="space-y-4">
                 {data.registration_deadline && (
                   <p className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">
@@ -419,6 +421,10 @@ export default function EventDetailsPage() {
                     Register Online
                   </a>
                 )}
+              </div>
+            ) : data.registration_required ? (
+              <div className="py-4 text-xs text-gray-500 font-medium">
+                Registration is closed for this event.
               </div>
             ) : (
               <div className="py-4 text-xs text-gray-500 font-medium">
