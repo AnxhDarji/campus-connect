@@ -176,12 +176,22 @@ export const retryReportGeneration = async (req, res, next) => {
     }
 
     const report = await EventReport.findOne({ event_id: event._id });
-    if (report?.generation_status === "GENERATED") {
-      return res.status(400).json({ success: false, message: "Report has already been generated." });
+    if (report?.generation_status === "GENERATING") {
+      return res.status(409).json({ success: false, message: "Report generation is already in progress." });
+    }
+
+    const lastAttempt = report?.updated_at || report?.generated_at;
+    if (lastAttempt && Date.now() - new Date(lastAttempt).getTime() < 60 * 1000) {
+      const retryAfter = Math.ceil((60 * 1000 - (Date.now() - new Date(lastAttempt).getTime())) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${retryAfter} seconds before regenerating the report.`,
+        retry_after: retryAfter,
+      });
     }
 
     // Fire and forget — respond immediately
-    generateAndStoreReport(event._id).catch(() => {});
+    generateAndStoreReport(event._id, { force: true }).catch(() => {});
 
     res.json({ success: true, message: "Report generation started." });
   } catch (err) {

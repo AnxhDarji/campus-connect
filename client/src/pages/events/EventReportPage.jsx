@@ -38,8 +38,15 @@ export default function EventReportPage() {
     setRetrying(true);
     try {
       await retryReportGeneration(id);
-      setLoading(true);
-      load();
+      setData((prev) => prev ? {
+        ...prev,
+        report: {
+          ...(prev.report || {}),
+          generation_status: "GENERATING",
+          report_data: null,
+        },
+      } : prev);
+      setLoading(false);
     } catch (err) {
       setError(err.response?.data?.message || "Retry failed.");
     } finally {
@@ -171,6 +178,10 @@ export default function EventReportPage() {
               <ListSection title="Event Outcomes" items={report.report_data.eventOutcomes} />
               <Section title="Conclusion" content={report.report_data.conclusion} />
               <p className="text-[10px] text-gray-400">Generated on {new Date(report.generated_at).toLocaleString()}</p>
+              <button onClick={handleRetry} disabled={retrying}
+                className="text-xs text-blue-600 hover:underline disabled:opacity-60">
+                {retrying ? "Regenerating..." : "Regenerate Report"}
+              </button>
             </div>
           )}
         </div>
