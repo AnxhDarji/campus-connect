@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 export default function PosterOverlayPreview({ event, completion, posterUrl, posterType = "official" }) {
   const [showModal, setShowModal] = useState(false);

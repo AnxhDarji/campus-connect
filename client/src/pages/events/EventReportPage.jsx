@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getEventCompletion, retryReportGeneration, generateAIPoster, regeneratePoster1, regeneratePoster2, approveAIPoster } from "../../services/eventService";
 import PosterOverlayPreview from "../../components/PosterOverlayPreview";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 export default function EventReportPage() {
   const { id } = useParams();

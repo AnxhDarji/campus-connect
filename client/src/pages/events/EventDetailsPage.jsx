@@ -5,7 +5,7 @@ import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
 import { useAuth } from "../../context/AuthContext";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5001";
 
 const LIFECYCLE_COLORS = {
   UPCOMING: "bg-sky-100 text-sky-700",

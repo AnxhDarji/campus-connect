@@ -83,7 +83,7 @@ export async function generatePoster2(event, completion) {
   if (apiKey) {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const geminiPrompt = `Analyze this event:
 Title: "${event.title}"
