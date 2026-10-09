@@ -10,13 +10,15 @@ import eventRequestRoutes from "./routes/eventRequest.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import departmentRoutes from "./routes/department.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import instagramRoutes from "./routes/instagram.routes.js";
+import socialRoutes from "./routes/social.routes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:5174', credentials: true }));
+app.use(cors({ origin: "http://localhost:5174", credentials: true }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -30,12 +32,11 @@ app.use("/api/event-requests", eventRequestRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/instagram", instagramRoutes);
+app.use("/api/social", socialRoutes);
 
 app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "CampusConnect API Running!!!",
-  });
+  res.json({ success: true, message: "CampusConnect API Running!!!" });
 });
 
 app.use(errorHandler);

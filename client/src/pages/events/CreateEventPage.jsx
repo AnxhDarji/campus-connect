@@ -15,6 +15,7 @@ import FormSection from "../../components/FormSection";
 import FileUploadField from "../../components/FileUploadField";
 import Button from "../../components/Button";
 import AudienceSelector from "../../components/AudienceSelector";
+import InstagramPostPanel from "../../components/InstagramPostPanel";
 
 const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports", "Cultural", "Competition", "Placement", "Festival", "Other"];
 const REQUESTER_ROLES = ["Event Manager", "Club Representative", "Volunteer Lead", "Media Team Member", "Faculty Coordinator", "Student Coordinator", "Department Representative", "External College Representative", "Student", "Other"];
@@ -31,6 +32,7 @@ const INITIAL = {
   registration_required: false, registration_link: "", registration_deadline: "", qr_code_url: "",
   website_url: "", instagram_url: "", linkedin_url: "", facebook_url: "", whatsapp_url: "", brochure_url: "",
   audience: [],
+  promoteOnInstagram: false,
 };
 
 const SECTIONS = ["Requester Info", "Basic Info", "Description", "Schedule", "Venue", "Registration", "Links", "Audience"];
@@ -59,6 +61,7 @@ export default function CreateEventPage() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successId, setSuccessId] = useState(null);
+  const [successMongoId, setSuccessMongoId] = useState(null);
   const [duplicateWarn, setDuplicateWarn] = useState(false);
 
   // Always override requester name/email from authenticated user (never use stale draft)
@@ -196,6 +199,7 @@ export default function CreateEventPage() {
       const res = await createEventRequest(form);
       setDuplicateWarn(res.data.duplicate_warning);
       setSuccessId(res.data.data.event_id);
+      setSuccessMongoId(res.data.data._id);
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
       setServerError(e.response?.data?.message || "Submission failed. Please try again.");
@@ -208,19 +212,31 @@ export default function CreateEventPage() {
 
   if (successId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-lg p-10 max-w-sm w-full text-center">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+      <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Request Submitted!</h2>
+            {duplicateWarn && <p className="text-xs text-amber-600 mb-2">⚠ A similar event may already exist. Your request is still pending review.</p>}
+            <p className="text-xs text-gray-500 mb-1">Your event request is now <span className="font-semibold text-blue-600">Pending Approval</span>.</p>
+            <p className="text-xs text-gray-400 mb-6 font-mono break-all">ID: {successId}</p>
+            <div className="flex gap-2">
+              <button onClick={() => navigate("/events/my")} className="flex-1 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">My Requests</button>
+              <button onClick={() => { setSuccessId(null); setSuccessMongoId(null); setForm(INITIAL); setStep(0); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
+            </div>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Request Submitted!</h2>
-          {duplicateWarn && <p className="text-xs text-amber-600 mb-2">⚠ A similar event may already exist. Your request is still pending review.</p>}
-          <p className="text-xs text-gray-500 mb-1">Your event request is now <span className="font-semibold text-blue-600">Pending Approval</span>.</p>
-          <p className="text-xs text-gray-400 mb-6 font-mono break-all">ID: {successId}</p>
-          <div className="flex gap-2">
-            <button onClick={() => navigate("/events/my")} className="flex-1 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">My Requests</button>
-            <button onClick={() => { setSuccessId(null); setForm(INITIAL); setStep(0); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
-          </div>
+
+          {/* Instagram Promotion Panel — shown when user opted in */}
+          {form.promoteOnInstagram && successMongoId && (
+            <InstagramPostPanel
+              eventId={successMongoId}
+              postType="EVENT_PROMOTION"
+              eventPosterUrl={form.poster_url || null}
+              title="Instagram Event Promotion"
+            />
+          )}
         </div>
       </div>
     );
@@ -354,6 +370,19 @@ export default function CreateEventPage() {
           onChange={(audience) => set("audience", audience)}
           error={errors.audience}
         />
+      </div>
+      <div className="sm:col-span-2 mt-4 flex items-start gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-xl">
+        <input
+          type="checkbox"
+          id="promote_instagram"
+          checked={form.promoteOnInstagram}
+          onChange={(e) => set("promoteOnInstagram", e.target.checked)}
+          className="w-4 h-4 mt-0.5 accent-purple-600"
+        />
+        <label htmlFor="promote_instagram" className="text-sm text-gray-700 cursor-pointer">
+          <span className="font-semibold text-purple-700">📸 Promote this event on Instagram</span>
+          <p className="text-xs text-gray-500 mt-0.5">After submission, generate an AI-powered Instagram promotional post for this event.</p>
+        </label>
       </div>
     </FormSection>,
   ];

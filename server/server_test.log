@@ -1,0 +1,257 @@
+
+> server@1.0.0 dev
+> nodemon src/server.js
+
+[33m[nodemon] 1.19.4[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching dir(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,json[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: MOCK
+[0mGET / [32m200[0m 4.618 ms - 57[0m
+[0mGET /favicon.ico [33m404[0m 3.174 ms - 150[0m
+[0mGET /api/auth/me [33m401[0m 0.915 ms - 48[0m
+[0mGET /api/auth/me [33m401[0m 0.438 ms - 48[0m
+[0mGET /api/auth/me [36m304[0m 234.384 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 197.846 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 148.344 ms - 220[0m
+[0mGET /api/departments [36m304[0m 138.112 ms - -[0m
+[0mGET /api/departments [36m304[0m 101.963 ms - -[0m
+[0mGET /api/event-requests?archive=false&feedType=upcoming&limit=30 [32m200[0m 258.471 ms - 4294[0m
+[0mGET /api/event-requests/my-bookmarks [32m200[0m 268.019 ms - 2034[0m
+[0mGET /uploads/events/1790223028458-529942147.png [33m404[0m 2.490 ms - 181[0m
+[0mGET /api/event-requests?archive=false&feedType=upcoming&limit=30 [36m304[0m 123.016 ms - -[0m
+[0mGET /api/event-requests/my-bookmarks [36m304[0m 293.194 ms - -[0m
+[0mGET /api/event-requests/my [32m200[0m 163.588 ms - 4039[0m
+[0mGET /api/event-requests/my [36m304[0m 170.142 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 601.244 ms - -[0m
+[0mGET /uploads/events/poster-1791110958943-93637288.png?_v=1791110987678 [36m304[0m 0.872 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [32m200[0m 210.867 ms - 26[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [32m200[0m 210.743 ms - 28[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [36m304[0m 225.778 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 230.617 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 490.455 ms - -[0m
+[0mPOST /api/social/events/6ac2217456671f90cd0d66a7/drafts [32m201[0m 291.103 ms - 469[0m
+[0mPOST /api/uploads/poster [32m200[0m 217.686 ms - 68[0m
+[0mPATCH /api/social/drafts/6ac94e8f4ab5c2682817e06e [32m200[0m 361.407 ms - 511[0m
+[0mGET /uploads/events/1791577895938-512527533.jpg [32m200[0m 1.854 ms - 27914[0m
+[0mPOST /api/social/drafts/6ac94e8f4ab5c2682817e06e/generate-caption [32m200[0m 10103.102 ms - 2247[0m
+[0mPATCH /api/social/drafts/6ac94e8f4ab5c2682817e06e [32m200[0m 267.457 ms - 2258[0m
+[0mPOST /api/social/drafts/6ac94e8f4ab5c2682817e06e/approve [32m200[0m 515.025 ms - 2283[0m
+[0mPOST /api/social/drafts/6ac94e8f4ab5c2682817e06e/publish [33m400[0m 241.577 ms - 112[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [32m200[0m 80.924 ms - 2294[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 93.506 ms - -[0m
+[0mGET /api/instagram/account [32m200[0m 280.216 ms - 31[0m
+[0mGET /api/event-requests/my [36m304[0m 336.423 ms - -[0m
+[0mGET /api/instagram/account [36m304[0m 283.500 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 449.015 ms - -[0m
+[0mGET /api/instagram/connect [31m500[0m 53.736 ms - 65[0m
+[0mGET /favicon.ico [33m404[0m 0.212 ms - 150[0m
+[0mGET /api/instagram/account [36m304[0m 126.430 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 202.733 ms - -[0m
+[0mGET /api/instagram/account [36m304[0m 79.933 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 248.882 ms - -[0m
+[0mGET /api/instagram/connect [31m500[0m 337.050 ms - 65[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-02.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-02.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[0mGET /api/auth/me [36m304[0m 233.168 ms - -[0m
+[0mGET /api/auth/me [36m304[0m 138.340 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 335.704 ms - -[0m
+[0mGET /uploads/events/poster-1791110958943-93637288.png?_v=1791110987678 [36m304[0m 3.350 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [36m304[0m 121.141 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 121.472 ms - -[0m
+[0mGET /uploads/events/1791577895938-512527533.jpg [36m304[0m 1.176 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 162.762 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 305.023 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [36m304[0m 169.734 ms - -[0m
+[0mGET /api/instagram/account [32m200[0m 253.549 ms - 131[0m
+[0mGET /api/event-requests/my [36m304[0m 319.251 ms - -[0m
+[0mGET /api/instagram/account [36m304[0m 93.737 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 140.918 ms - -[0m
+[0mGET /api/departments [36m304[0m 112.652 ms - -[0m
+[0mGET /api/event-requests?archive=false&feedType=upcoming&limit=30 [36m304[0m 153.784 ms - -[0m
+[0mGET /uploads/events/1790223028458-529942147.png [33m404[0m 1.142 ms - 181[0m
+[0mGET /api/event-requests/my-bookmarks [36m304[0m 213.330 ms - -[0m
+[0mGET /api/departments [36m304[0m 109.318 ms - -[0m
+[0mGET /api/event-requests?archive=false&feedType=upcoming&limit=30 [36m304[0m 179.065 ms - -[0m
+[0mGET /api/event-requests/my-bookmarks [36m304[0m 231.415 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 150.668 ms - -[0m
+[0mGET /api/event-requests/my [36m304[0m 163.395 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 253.658 ms - -[0m
+[0mGET /uploads/events/poster-1791110958943-93637288.png?_v=1791110987678 [36m304[0m 1.980 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [36m304[0m 98.603 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 103.947 ms - -[0m
+[0mGET /uploads/events/1791577895938-512527533.jpg [36m304[0m 0.671 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [36m304[0m 93.648 ms - -[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [36m304[0m 95.947 ms - -[0m
+[0mGET /api/event-requests/6ac2217456671f90cd0d66a7/completion [36m304[0m 265.690 ms - -[0m
+[0mGET /uploads/events/1791577895938-512527533.jpg [32m200[0m 1.543 ms - 27914[0m
+[0mPOST /api/social/drafts/6ac94e8f4ab5c2682817e06e/publish [32m200[0m 14644.780 ms - 229[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/drafts/EVENT_RESULT [32m200[0m 201.079 ms - 2359[0m
+[0mGET /api/social/events/6ac2217456671f90cd0d66a7/history [32m200[0m 200.124 ms - 1850[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-02.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-02.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-00.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+MongoDB Connected : ac-lrx9ghu-shard-00-01.ucsiadz.mongodb.net
+[Scheduler] Social post scheduler started.
+Server running on port 5001
+Social mode: REAL
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m

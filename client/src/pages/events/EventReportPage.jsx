@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getEventCompletion, retryReportGeneration, generateAIPoster, regeneratePoster1, regeneratePoster2, approveAIPoster } from "../../services/eventService";
 import PosterOverlayPreview from "../../components/PosterOverlayPreview";
+import InstagramPostPanel from "../../components/InstagramPostPanel";
 
 const BASE_URL = "http://localhost:5001";
 
@@ -188,6 +189,17 @@ export default function EventReportPage() {
 
         {/* AI Poster Generation & Review Section */}
         <AIPosterSection event={event} completion={completion} onUpdate={() => load(true)} />
+
+        {/* Instagram Post-Event Result Post */}
+        {completion && (
+          <InstagramPostPanel
+            eventId={event._id}
+            postType="EVENT_RESULT"
+            eventPosterUrl={event.poster_url || null}
+            aiPosterUrl={completion.generated_activity_poster_url || completion.generated_poster_url || null}
+            title="Instagram Result Post"
+          />
+        )}
       </div>
     </div>
   );
