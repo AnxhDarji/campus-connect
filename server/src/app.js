@@ -12,6 +12,7 @@ import departmentRoutes from "./routes/department.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import instagramRoutes from "./routes/instagram.routes.js";
 import socialRoutes from "./routes/social.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,7 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/instagram", instagramRoutes);
 app.use("/api/social", socialRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
   res.json({ success: true, message: "CampusConnect API Running!!!" });

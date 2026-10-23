@@ -18,6 +18,7 @@ import MainLayout from './components/MainLayout';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminRequestsPage from './pages/admin/AdminRequestsPage';
 import AdminRequestDetailPage from './pages/admin/AdminRequestDetailPage';
+import ChatBot from './components/ChatBot';
 
 const ADMIN_ROLES = ["Super Admin", "Dept Admin", "Admin"];
 
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="requests/:id" element={<AdminRequestDetailPage />} />
         </Route>
       </Routes>
+      <ChatBot />
     </BrowserRouter>
   );
 }
