@@ -77,6 +77,8 @@ const eventRequestSchema = new mongoose.Schema(
     registration_link: { type: String, default: null },
     registration_deadline: { type: Date, default: null },
     qr_code_url: { type: String, default: null },
+    capacity: { type: Number, default: null, min: 1 },
+    registration_open: { type: Boolean, default: true },
 
     // External Links
     website_url: { type: String, default: null },

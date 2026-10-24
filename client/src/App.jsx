@@ -14,6 +14,8 @@ import EventsFeedPage from './pages/events/EventsFeedPage';
 import FestivalPage from './pages/events/FestivalPage';
 import EventCompletionPage from './pages/events/EventCompletionPage';
 import EventReportPage from './pages/events/EventReportPage';
+import QRPassPage from './pages/events/QRPassPage';
+import OrganizerDashboardPage from './pages/events/OrganizerDashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import MainLayout from './components/MainLayout';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -90,6 +92,8 @@ export default function App() {
             <Route path="/events/:id/edit" element={<EditEventPage />} />
             <Route path="/events/:id/complete" element={<EventCompletionPage />} />
             <Route path="/events/:id/report" element={<EventReportPage />} />
+            <Route path="/events/:id/qr-pass" element={<QRPassPage />} />
+            <Route path="/events/:id/organizer" element={<OrganizerDashboardPage />} />
             <Route path="/festivals/:festivalName" element={<FestivalPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>

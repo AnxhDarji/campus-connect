@@ -63,3 +63,13 @@ export const adminGetRequest = (id) => api.get(`/api/admin/event-requests/${id}`
 export const adminApproveRequest = (id, data) => api.post(`/api/admin/event-requests/${id}/approve`, data);
 export const adminRejectRequest = (id, rejection_reason) => api.post(`/api/admin/event-requests/${id}/reject`, { rejection_reason });
 export const adminEditRequest = (id, data) => api.patch(`/api/admin/event-requests/${id}`, data);
+
+// Registration & Attendance
+export const registerForEvent = (eventId) => api.post(`/api/registrations/${eventId}/register`);
+export const getMyRegistration = (eventId) => api.get(`/api/registrations/${eventId}/my`);
+export const getQRPass = (eventId) => api.get(`/api/registrations/${eventId}/qr-pass`);
+export const verifyQR = (eventId, token) => api.post(`/api/registrations/${eventId}/verify-qr`, { token });
+export const getAttendanceStats = (eventId) => api.get(`/api/registrations/${eventId}/attendance/stats`);
+export const getAttendanceList = (eventId, params) => api.get(`/api/registrations/${eventId}/attendance/list`, { params });
+export const getReportCSVUrl = (eventId) => `/api/registrations/${eventId}/report/csv`;
+export const getReportXLSXUrl = (eventId) => `/api/registrations/${eventId}/report/xlsx`;
