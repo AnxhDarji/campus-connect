@@ -5,27 +5,30 @@ export default function Input({ label, type, ...props }) {
 
   const isPassword = type === 'password';
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
+  const inputId = props.id || props.name;
 
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+        <label htmlFor={inputId} className="text-xs font-medium text-gray-600 uppercase tracking-wide">
           {label}
         </label>
       )}
       <div className="relative">
         <input
           {...props}
+          id={inputId}
           type={inputType}
-          placeholder={isPassword ? '' : props.placeholder}
-          className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition pr-10"
+          placeholder={props.placeholder}
+          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 pr-10 text-sm text-gray-800 placeholder:text-gray-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         {isPassword && (
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            tabIndex={-1}
           >
             {showPassword ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

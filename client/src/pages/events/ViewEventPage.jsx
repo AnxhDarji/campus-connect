@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getEventRequest } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
+import { mediaUrl } from "../../utils/mediaUrl";
+import LoadingState from "../../components/LoadingState";
 
 const Row = ({ label, value }) =>
   value ? (
@@ -25,7 +27,7 @@ export default function ViewEventPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">Loading...</div>;
+  if (loading) return <LoadingState message="Loading event..." />;
   if (!data) return null;
 
   return (
@@ -73,7 +75,7 @@ export default function ViewEventPage() {
           {data.poster_url && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
               <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Poster</p>
-              <img src={`http://localhost:5001${data.poster_url}`} alt="poster" className="max-h-64 rounded object-contain" />
+              <img src={mediaUrl(data.poster_url)} alt="poster" className="max-h-64 rounded object-contain" />
             </div>
           )}
 

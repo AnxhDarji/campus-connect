@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^node --check server/src/services/geminiImageService\\.js; node --check server/src/services/cloudinaryService\\.js; node --check server/src/controllers/eventRequest\\.controller\\.js; node --check server/src/controllers/eventCompletion\\.controller\\.js; node --check server/src/routes/eventRequest\\.routes\\.js; node --check server/src/models/EventCompletion\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

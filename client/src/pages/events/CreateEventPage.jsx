@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { createEventRequest, uploadPoster, uploadQR, uploadBrochure, getDepartments } from "../../services/eventService";
+import { createEventRequest, generateAnnouncementPoster, uploadPoster, uploadQR, uploadBrochure, getDepartments } from "../../services/eventService";
 import {
   validateEventForm,
   validatePhone,
@@ -16,6 +16,9 @@ import FileUploadField from "../../components/FileUploadField";
 import Button from "../../components/Button";
 import AudienceSelector from "../../components/AudienceSelector";
 import InstagramPostPanel from "../../components/InstagramPostPanel";
+import EventImageSelector from "../../components/EventImageSelector";
+import { mediaUrl } from "../../utils/mediaUrl";
+import { audienceLabel } from "../../utils/charusatData";
 
 const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports", "Cultural", "Competition", "Placement", "Festival", "Other"];
 const REQUESTER_ROLES = ["Event Manager", "Club Representative", "Volunteer Lead", "Media Team Member", "Faculty Coordinator", "Student Coordinator", "Department Representative", "External College Representative", "Student", "Other"];
@@ -35,7 +38,7 @@ const INITIAL = {
   promoteOnInstagram: false,
 };
 
-const SECTIONS = ["Requester Info", "Basic Info", "Description", "Schedule", "Venue", "Registration", "Links", "Audience"];
+const SECTIONS = ["Requester Info", "Basic Info", "Description", "Schedule", "Venue", "Registration", "Links", "Audience", "Announcement Image"];
 
 const STEP_FIELDS = [
   ["requester_name", "requester_role", "custom_role", "organization_type", "organization_name", "organization_email", "contact_number", "email"],
@@ -46,7 +49,16 @@ const STEP_FIELDS = [
   ["registration_link", "registration_deadline"],
   ["website_url", "instagram_url", "linkedin_url", "facebook_url", "whatsapp_url"],
   [],
+  [],
 ];
+
+const formatPreviewDate = (value) => {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+};
 
 export default function CreateEventPage() {
   const { user, loading: authLoading } = useAuth();
@@ -57,8 +69,11 @@ export default function CreateEventPage() {
   });
   const [errors, setErrors] = useState({});
   const [departments, setDepartments] = useState([]);
+  const [departmentsError, setDepartmentsError] = useState("");
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successId, setSuccessId] = useState(null);
   const [successMongoId, setSuccessMongoId] = useState(null);
@@ -75,9 +90,22 @@ export default function CreateEventPage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    getDepartments().then((r) => setDepartments(r.data.data || [])).catch(() => {});
+  const loadDepartments = useCallback(async () => {
+    setDepartmentsError("");
+    try {
+      const response = await getDepartments();
+      if (!Array.isArray(response.data.data)) {
+        throw new Error("The department service returned an invalid response.");
+      }
+      setDepartments(response.data.data);
+    } catch (error) {
+      setDepartmentsError(error.response?.data?.message || error.message || "Department options could not be loaded.");
+    }
   }, []);
+
+  useEffect(() => {
+    loadDepartments();
+  }, [loadDepartments]);
 
   // Auto-save draft
   useEffect(() => {
@@ -87,6 +115,7 @@ export default function CreateEventPage() {
   const set = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+    setServerError("");
   }, []);
 
   // Inline validators called on blur / change
@@ -117,6 +146,7 @@ export default function CreateEventPage() {
   }, []);
 
   const handleChange = useCallback((field, value) => {
+    setServerError("");
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       inlineValidate(field, value, next);
@@ -133,7 +163,7 @@ export default function CreateEventPage() {
 
   // ── Field renderers ──────────────────────────────────────────────────────
 
-  const inputCls = "w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition";
+  const inputCls = "w-full px-3 py-2 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition";
   const labelCls = "text-xs font-medium text-gray-600 uppercase tracking-wide";
 
   const field = (name, label, type = "text", extra = {}) => (
@@ -155,13 +185,13 @@ export default function CreateEventPage() {
     <div className="flex flex-col gap-1">
       <label className={labelCls}>{label}</label>
       {authLoading ? (
-        <div className="w-full px-3.5 py-2.5 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-400 animate-pulse">Loading...</div>
+        <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-400 animate-pulse">Loading...</div>
       ) : (
         <input
           type="text"
           value={form[name]}
           readOnly
-          className="w-full px-3.5 py-2.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
+          className="w-full px-3 py-2 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
         />
       )}
     </div>
@@ -173,7 +203,7 @@ export default function CreateEventPage() {
       <select
         value={form[name]}
         onChange={(e) => handleChange(name, e.target.value)}
-        className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-3 py-2 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <option value="">Select {label}</option>
         {options.map((o) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
@@ -184,15 +214,31 @@ export default function CreateEventPage() {
 
   // ── Submit ───────────────────────────────────────────────────────────────
 
+  const handlePreview = () => {
+    const errs = validateEventForm(form);
+    setErrors(errs);
+    if (Object.keys(errs).length) {
+      const firstErrStep = STEP_FIELDS.findIndex((fields) => fields.some((f) => errs[f]));
+      if (firstErrStep !== -1) setStep(firstErrStep);
+      setServerError("Please fix the errors below before previewing your event.");
+      return;
+    }
+    setServerError("");
+    setShowPreview(true);
+  };
+
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     const errs = validateEventForm(form);
     if (Object.keys(errs).length) {
       setErrors(errs);
+      setShowPreview(false);
       const firstErrStep = STEP_FIELDS.findIndex((fields) => fields.some((f) => errs[f]));
       if (firstErrStep !== -1) setStep(firstErrStep);
       setServerError("Please fix the errors below before submitting.");
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     setServerError("");
     try {
@@ -204,6 +250,7 @@ export default function CreateEventPage() {
     } catch (e) {
       setServerError(e.response?.data?.message || "Submission failed. Please try again.");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -213,18 +260,18 @@ export default function CreateEventPage() {
   if (successId) {
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-4">
           <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
             <h2 className="text-lg font-bold text-gray-900 mb-1">Request Submitted!</h2>
-            {duplicateWarn && <p className="text-xs text-amber-600 mb-2">⚠ A similar event may already exist. Your request is still pending review.</p>}
+            {duplicateWarn && <p className="text-xs text-amber-600 mb-2">A similar event may already exist. Your request is still pending review.</p>}
             <p className="text-xs text-gray-500 mb-1">Your event request is now <span className="font-semibold text-blue-600">Pending Approval</span>.</p>
             <p className="text-xs text-gray-400 mb-6 font-mono break-all">ID: {successId}</p>
             <div className="flex gap-2">
               <button onClick={() => navigate("/events/my")} className="flex-1 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">My Requests</button>
-              <button onClick={() => { setSuccessId(null); setSuccessMongoId(null); setForm(INITIAL); setStep(0); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
+              <button onClick={() => { setSuccessId(null); setSuccessMongoId(null); setForm(INITIAL); setStep(0); setShowPreview(false); setErrors({}); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
             </div>
           </div>
 
@@ -237,6 +284,110 @@ export default function CreateEventPage() {
               title="Instagram Event Promotion"
             />
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (showPreview) {
+    const departmentName = departments.find((department) => department._id === form.department_id)?.name;
+    const eventDetails = [
+      ["Category", form.category],
+      ["Department", departmentName],
+      ["Club", form.club_name],
+      ["Dates", [formatPreviewDate(form.start_date), form.end_date !== form.start_date ? formatPreviewDate(form.end_date) : ""].filter(Boolean).join(" – ")],
+      ["Time", [form.start_time, form.end_time].filter(Boolean).join(" – ")],
+      ["Venue", [form.venue, form.building, form.room && `Room ${form.room}`].filter(Boolean).join(", ")],
+      ["Google Maps", form.google_map_url],
+      ["Registration", form.registration_required ? "Required" : "Not required"],
+      ["Registration link", form.registration_required ? form.registration_link : ""],
+      ["Registration deadline", form.registration_required ? formatPreviewDate(form.registration_deadline) : ""],
+      ["Audience", form.audience.length ? form.audience.map(audienceLabel).join(", ") : "Entire CHARUSAT student community"],
+      ["Organizer", [form.organization_name, form.organization_type, form.requester_role === "Other" ? form.custom_role : form.requester_role].filter(Boolean).join(" · ")],
+      ["Contact", [form.requester_name, form.email, form.organization_email, form.contact_number].filter(Boolean).join(" · ")],
+      ["Website", form.website_url],
+      ["Instagram", form.instagram_url],
+      ["LinkedIn", form.linkedin_url],
+      ["Facebook", form.facebook_url],
+      ["WhatsApp", form.whatsapp_url],
+      ["Brochure", form.brochure_url],
+      ["Promote on Instagram", form.promoteOnInstagram ? "Yes" : "No"],
+    ].filter(([, value]) => value);
+
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-5">
+        <div className="mx-auto max-w-3xl">
+          <button
+            type="button"
+            onClick={() => setShowPreview(false)}
+            className="mb-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+          >
+            ← Back to event form
+          </button>
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Review before submission</p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">Event Preview</h1>
+            <p className="mt-1 text-sm text-gray-500">Check the event details below. Nothing is submitted until you confirm.</p>
+          </div>
+
+          <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {form.poster_url && (
+              <img
+                src={mediaUrl(form.poster_url)}
+                alt={`${form.title} announcement`}
+                className="max-h-72 w-full bg-gray-50 object-contain"
+              />
+            )}
+            <div className="p-5 sm:p-6">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                {form.category && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{form.category}</span>}
+                {departmentName && <span className="text-xs text-gray-500">{departmentName}</span>}
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">{form.title}</h2>
+              {form.description && <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-600">{form.description}</p>}
+
+              <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                {eventDetails.map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
+                    <dd className="mt-0.5 break-words text-sm text-gray-700">
+                      {label === "Brochure" && value ? (
+                        <a href={mediaUrl(value)} target="_blank" rel="noreferrer" className="font-medium text-blue-700 underline">
+                          View brochure
+                        </a>
+                      ) : value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {form.registration_required && form.qr_code_url && (
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Registration QR code</p>
+                  <img src={mediaUrl(form.qr_code_url)} alt="Event registration QR code" className="mt-2 h-28 w-28 rounded border border-gray-200 object-contain" />
+                </div>
+              )}
+            </div>
+          </article>
+
+          {serverError && (
+            <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {serverError}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => { setShowPreview(false); setServerError(""); }}
+              disabled={submitting}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+            >
+              Edit Event
+            </button>
+            <Button type="button" loading={submitting} onClick={handleSubmit}>
+              {submitting ? "Submitting..." : "Confirm & Submit"}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -276,22 +427,11 @@ export default function CreateEventPage() {
         <textarea
           value={form.description}
           onChange={(e) => handleChange("description", e.target.value)}
-          rows={4}
-          placeholder="Describe the event... (optional)"
+          rows={3}
+          placeholder="Describe the event. At least 50 words without an image, or 20 words with one."
           className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
-      </div>
-      <div className="sm:col-span-2">
-        <FileUploadField
-          label="Event Poster"
-          accept=".jpg,.jpeg,.png,.webp"
-          maxMB={10}
-          uploadFn={uploadPoster}
-          preview={form.poster_url}
-          onUpload={(url) => set("poster_url", url)}
-          note="JPG, JPEG, PNG, WEBP · max 10MB"
-        />
       </div>
     </FormSection>,
 
@@ -380,18 +520,42 @@ export default function CreateEventPage() {
           className="w-4 h-4 mt-0.5 accent-purple-600"
         />
         <label htmlFor="promote_instagram" className="text-sm text-gray-700 cursor-pointer">
-          <span className="font-semibold text-purple-700">📸 Promote this event on Instagram</span>
+          <span className="font-semibold text-purple-700">Promote this event on Instagram</span>
           <p className="text-xs text-gray-500 mt-0.5">After submission, generate an AI-powered Instagram promotional post for this event.</p>
         </label>
+      </div>
+    </FormSection>,
+    <FormSection title="Announcement Image" key="announcement-image">
+      <div className="sm:col-span-2">
+        <EventImageSelector
+          label="Event announcement image"
+          value={form.poster_url}
+          onChange={(url) => set("poster_url", url)}
+          uploadFn={uploadPoster}
+          generateFn={() => {
+            const department = departments.find((item) => item._id === form.department_id);
+            return generateAnnouncementPoster({
+              title: form.title,
+              category: form.category,
+              description: form.description,
+              start_date: form.start_date,
+              start_time: form.start_time,
+              venue: form.venue,
+              department: department?.name || "",
+              requester_name: form.requester_name,
+              organization_name: form.organization_name,
+            });
+          }}
+        />
       </div>
     </FormSection>,
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-5">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-3">
           <button onClick={() => navigate("/dashboard")} className="text-xs text-gray-400 hover:text-gray-600 mb-3 flex items-center gap-1">
             ← Back to Dashboard
           </button>
@@ -399,7 +563,7 @@ export default function CreateEventPage() {
           <p className="text-xs text-gray-400 mt-1">
             Your draft is saved automatically. ·{" "}
             <button
-              onClick={() => { localStorage.removeItem(STORAGE_KEY); setForm(INITIAL); setStep(0); setErrors({}); setServerError(""); }}
+              onClick={() => { localStorage.removeItem(STORAGE_KEY); setForm(INITIAL); setStep(0); setShowPreview(false); setErrors({}); setServerError(""); }}
               className="text-red-400 hover:text-red-500 underline"
             >
               Clear draft
@@ -408,7 +572,7 @@ export default function CreateEventPage() {
         </div>
 
         {/* Progress */}
-        <div className="flex gap-1 mb-6">
+        <div className="flex gap-1 mb-3">
           {SECTIONS.map((s, i) => (
             <button
               key={s}
@@ -418,10 +582,19 @@ export default function CreateEventPage() {
             />
           ))}
         </div>
-        <p className="text-xs text-gray-500 mb-4 font-medium">{step + 1} / {SECTIONS.length} — {SECTIONS[step]}</p>
+        <p className="text-xs text-gray-500 mb-2.5 font-medium">{step + 1} / {SECTIONS.length} — {SECTIONS[step]}</p>
+
+        {departmentsError && (
+          <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs text-amber-800">{departmentsError}</p>
+            <button type="button" onClick={loadDepartments} className="text-xs font-semibold text-amber-800 underline underline-offset-2">
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Section */}
-        <div className="min-h-[480px]">
+        <div className="flex-1">
           {sections[step]}
         </div>
 
@@ -432,26 +605,32 @@ export default function CreateEventPage() {
         )}
 
         {/* Navigation */}
-        <div className="flex gap-3 mt-6">
+        <div className="sticky bottom-0 z-10 -mx-4 mt-5 flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-[var(--cc-bg)] sm:mx-0 sm:mt-auto sm:border-0 sm:px-0 sm:py-0">
           {step > 0 && (
             <button
+              type="button"
               onClick={() => setStep((s) => s - 1)}
-              className="flex-1 py-2.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition"
+              className="min-h-10 min-w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5"
             >
               Back
             </button>
           )}
           {step < SECTIONS.length - 1 ? (
             <button
+              type="button"
               onClick={() => setStep((s) => s + 1)}
-              className="flex-1 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="ml-auto min-h-10 min-w-28 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               Next
             </button>
           ) : (
-            <Button loading={submitting} onClick={handleSubmit}>
-              {submitting ? "Submitting..." : "Submit Request"}
-            </Button>
+            <button
+              type="button"
+              onClick={handlePreview}
+              className="ml-auto min-h-10 min-w-28 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Preview Event
+            </button>
           )}
         </div>
       </div>

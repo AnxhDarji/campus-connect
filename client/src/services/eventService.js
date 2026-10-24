@@ -5,6 +5,7 @@ export const getMyRequests = () => api.get("/api/event-requests/my");
 export const getEventRequest = (id) => api.get(`/api/event-requests/${id}`);
 export const updateEventRequest = (id, data) => api.put(`/api/event-requests/${id}`, data);
 export const deleteEventRequest = (id) => api.delete(`/api/event-requests/${id}`);
+export const generateAnnouncementPoster = (data) => api.post("/api/event-requests/poster/generate", data);
 
 export const uploadPoster = (file, onProgress) => {
   const form = new FormData();
@@ -47,6 +48,8 @@ export const submitEventCompletion = (id, formData) =>
   api.post(`/api/event-requests/${id}/completion`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+export const generatePostEventImage = (id, data) =>
+  api.post(`/api/event-requests/${id}/completion/generate-image`, data);
 export const retryReportGeneration = (id) => api.post(`/api/event-requests/${id}/completion/report/retry`);
 export const generateAIPoster = (id) => api.post(`/api/event-requests/${id}/completion/generate-poster`);
 export const regeneratePoster1 = (id) => api.post(`/api/event-requests/${id}/completion/regenerate-poster1`);

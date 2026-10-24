@@ -18,10 +18,11 @@ export const listRequests = async (req, res, next) => {
     const filter = deptFilter(req.user);
     if (filter === null) return res.status(403).json({ success: false, message: "Access denied." });
 
-    const { status, department, category, organization_type, requester_role, search, page = 1, limit = 20, sortBy = "created_at", sortOrder = "desc" } = req.query;
+    const { status, completion_status, department, category, organization_type, requester_role, search, page = 1, limit = 20, sortBy = "created_at", sortOrder = "desc" } = req.query;
 
     const query = { is_deleted: false, ...filter };
     if (status) query.status = status;
+    if (completion_status === "COMPLETED") query.completion_status = "COMPLETED";
     if (department) query.department_id = department;
     if (category) query.category = category;
     if (organization_type) query.organization_type = organization_type;

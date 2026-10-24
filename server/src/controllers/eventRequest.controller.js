@@ -2,6 +2,7 @@ import EventRequest from "../models/EventRequest.js";
 import User from "../models/User.js";
 import { getLifecycleStatus } from "../utils/eventLifecycle.js";
 import sanitizeHtml from "sanitize-html";
+import { generateTextFocusedPoster } from "../services/geminiImageService.js";
 
 const sanitize = (str) => (str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }) : str);
 
@@ -62,6 +63,32 @@ const buildEventData = (body, userId) => {
     audience: parseAudience(b.audience),
     updated_by: userId,
   };
+};
+
+// POST /api/event-requests/poster/generate
+export const generateAnnouncementPoster = async (req, res, next) => {
+  try {
+    const { title, category, description, start_date, start_time, venue, department, requester_name, organization_name } = req.body;
+    if (!title?.trim()) {
+      return res.status(400).json({ success: false, message: "Enter an event title before generating its announcement image." });
+    }
+
+    const url = await generateTextFocusedPoster({
+      title,
+      category,
+      description,
+      start_date,
+      start_time,
+      venue,
+      department,
+      requester_name,
+      organization_name,
+    }, null, "announcement");
+
+    res.json({ success: true, data: { url } });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // POST /api/event-requests

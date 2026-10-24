@@ -69,10 +69,17 @@ export const validateResendOTP = [
 ];
 
 export const validateLogin = [
-  body("email")
+  body("identifier")
+    .optional()
+    .isString().withMessage("Institution email or ID must be text.")
     .trim()
-    .notEmpty().withMessage("Email is required.")
-    .isEmail().withMessage("Invalid email format."),
+    .notEmpty().withMessage("Institution email or ID is required."),
+
+  body("email")
+    .optional()
+    .isString().withMessage("Email must be text.")
+    .trim()
+    .notEmpty().withMessage("Institution email or ID is required."),
 
   body("password")
     .notEmpty().withMessage("Password is required."),

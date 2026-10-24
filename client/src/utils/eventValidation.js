@@ -74,6 +74,15 @@ export function validateEventForm(form) {
   if (!form.category) errors.category = "Category is required.";
   if (!form.department_id) errors.department_id = "Department is required.";
 
+  const description = form.description?.trim() || "";
+  const descriptionWords = description ? description.split(/\s+/).length : 0;
+  const minDescriptionWords = form.poster_url ? 20 : 50;
+  if (!description && !form.poster_url) {
+    errors.description = "Add an event description or an announcement image.";
+  } else if (description && descriptionWords < minDescriptionWords) {
+    errors.description = `Description must be at least ${minDescriptionWords} words${form.poster_url ? "" : " without an announcement image"}.`;
+  }
+
   const startErr = validateStartDate(form.start_date);
   if (startErr) errors.start_date = startErr;
 

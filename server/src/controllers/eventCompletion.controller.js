@@ -4,6 +4,7 @@ import EventCompletion from "../models/EventCompletion.js";
 import EventReport from "../models/EventReport.js";
 import { getLifecycleStatus } from "../utils/eventLifecycle.js";
 import { generateAndStoreReport } from "../services/eventReportService.js";
+import { generateAIPoster, generatePoster1, generatePoster2, generateTextFocusedPoster } from "../services/geminiImageService.js";
 
 const ADMIN_ROLES = ["Super Admin", "Admin", "Dept Admin"];
 
@@ -137,6 +138,8 @@ export const submitCompletion = async (req, res, next) => {
           winners_achievements: req.body.winners_achievements?.trim() || null,
           special_guests: req.body.special_guests?.trim() || null,
           event_outcomes: req.body.event_outcomes?.trim() || null,
+          post_event_image_url: req.body.post_event_image_url?.trim() || null,
+          post_to_instagram: req.body.post_to_instagram === "true" || req.body.post_to_instagram === true,
           photos,
           submitted_by: req.user.id,
         },
@@ -168,7 +171,35 @@ export const submitCompletion = async (req, res, next) => {
   }
 };
 
-import { generateAIPoster, generatePoster1, generatePoster2 } from "../services/geminiImageService.js";
+// POST /api/event-requests/:id/completion/generate-image
+export const generatePostEventImage = async (req, res, next) => {
+  try {
+    const event = await EventRequest.findOne({ _id: req.params.id, is_deleted: false })
+      .populate("department_id", "name code");
+    if (!event) return res.status(404).json({ success: false, message: "Event not found." });
+    if (!isAuthorized(event, req.user.id, req.user.role)) {
+      return res.status(403).json({ success: false, message: "Not authorized." });
+    }
+    if (getLifecycleStatus(event) !== "AWAITING_COMPLETION") {
+      return res.status(400).json({ success: false, message: "This event is not awaiting a completion report." });
+    }
+
+    const completion = {
+      key_highlights: req.body.key_highlights,
+      winners_achievements: req.body.winners_achievements,
+      special_guests: req.body.special_guests,
+      event_outcomes: req.body.event_outcomes,
+    };
+    const url = await generateTextFocusedPoster({
+      ...event.toObject(),
+      department: event.department_id,
+    }, completion, "completion");
+
+    res.json({ success: true, data: { url } });
+  } catch (err) {
+    next(err);
+  }
+};
 
 // POST /api/event-requests/:id/completion/generate-poster
 export const generatePoster = async (req, res, next) => {

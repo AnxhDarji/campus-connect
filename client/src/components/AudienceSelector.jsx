@@ -24,10 +24,10 @@ function AudienceEntry({ entry, index, onChange, onRemove }) {
   const sel = "w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
-    <div className="border border-gray-100 rounded-lg p-4 bg-gray-50 flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3.5 sm:p-4">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Audience {index + 1}</span>
-        <button type="button" onClick={() => onRemove(index)} className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
+        <button type="button" onClick={() => onRemove(index)} aria-label={`Remove audience ${index + 1}`} className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-red-50 hover:text-red-600">Remove</button>
       </div>
 
       {/* Type toggle */}
@@ -104,7 +104,7 @@ function AudienceEntry({ entry, index, onChange, onRemove }) {
 }
 
 export default function AudienceSelector({ value, onChange, error }) {
-  const entries = value.length > 0 ? value : [];
+  const entries = Array.isArray(value) ? value : [];
 
   const handleChange = (index, updated) => {
     const next = [...entries];
@@ -131,14 +131,14 @@ export default function AudienceSelector({ value, onChange, error }) {
         onClick={handleAdd}
         className="text-xs text-blue-600 hover:text-blue-700 font-medium self-start"
       >
-        + Add Another Audience
+        Add another audience
       </button>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       {/* Audience Preview */}
       {entries.length > 0 && (
-        <div className="mt-1 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+        <div className="mt-1 rounded-xl border border-blue-100 bg-blue-50 p-3.5">
           <p className="text-xs font-medium text-blue-700 uppercase tracking-wide mb-2">Audience Preview</p>
           <ul className="flex flex-col gap-1">
             {entries.map((entry, i) => {
@@ -148,8 +148,8 @@ export default function AudienceSelector({ value, onChange, error }) {
                   ? "Entire CHARUSAT student community"
                   : audienceLabel(entry);
               return (
-                <li key={i} className="text-xs text-blue-800 flex items-start gap-1.5">
-                  <span className="text-green-500 mt-0.5">✓</span>
+                <li key={i} className="flex items-start gap-2 text-xs text-blue-800">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
                   <span>{label}</span>
                 </li>
               );

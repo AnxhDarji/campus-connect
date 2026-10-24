@@ -10,8 +10,8 @@ import {
   getPublishingHistory,
 } from "../services/socialService";
 import { uploadPoster } from "../services/eventService";
-
-const BASE_URL = "http://localhost:5001";
+import { mediaUrl } from "../utils/mediaUrl";
+import LoadingState from "./LoadingState";
 
 const STATUS_COLOR = {
   DRAFT: "bg-gray-100 text-gray-500",
@@ -31,16 +31,19 @@ const STATUS_COLOR = {
  *   eventId    — MongoDB _id of the EventRequest
  *   postType   — "EVENT_PROMOTION" | "EVENT_RESULT"
  *   eventPosterUrl — existing event poster URL (optional, for quick-select)
+ *   postEventImageUrl — selected completion image URL (optional, for result posts)
  *   aiPosterUrl    — AI-generated poster URL (optional, for quick-select)
  *   title      — section heading
  */
-export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, aiPosterUrl, title }) {
+export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, postEventImageUrl, aiPosterUrl, title }) {
   const [draft, setDraft] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ text: "", error: false });
   const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleMin, setScheduleMin] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -52,14 +55,32 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
       ]);
       setDraft(draftRes.data.data);
       setHistory((histRes.data.data || []).filter((r) => r.postType === postType));
-    } catch {
-      // silently ignore — panel just won't show data
+      setLoadError("");
+    } catch (err) {
+      setLoadError(err.response?.data?.message || "Unable to load Instagram draft and publishing history.");
     } finally {
       setLoading(false);
     }
   }, [eventId, postType]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let current = true;
+    Promise.all([
+      getDraftByType(eventId, postType),
+      getPublishingHistory(eventId),
+    ])
+      .then(([draftRes, histRes]) => {
+        if (!current) return;
+        setDraft(draftRes.data.data);
+        setHistory((histRes.data.data || []).filter((r) => r.postType === postType));
+        setLoadError("");
+      })
+      .catch((err) => {
+        if (current) setLoadError(err.response?.data?.message || "Unable to load Instagram draft and publishing history.");
+      })
+      .finally(() => { if (current) setLoading(false); });
+    return () => { current = false; };
+  }, [eventId, postType]);
 
   // Poll while generating
   useEffect(() => {
@@ -127,7 +148,9 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
     try {
       const res = await updateDraft(draft._id, { finalCaption: draft.finalCaption });
       setDraft(res.data.data);
-    } catch { /* ignore */ }
+    } catch (e) {
+      notify(e.response?.data?.message || "Unable to save the caption. Please try again.", true);
+    }
   };
 
   const handleHashtagsChange = async (value) => {
@@ -139,7 +162,9 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
     try {
       const res = await updateDraft(draft._id, { hashtags: draft.hashtags });
       setDraft(res.data.data);
-    } catch { /* ignore */ }
+    } catch (e) {
+      notify(e.response?.data?.message || "Unable to save hashtags. Please try again.", true);
+    }
   };
 
   const handleApprove = async () => {
@@ -182,14 +207,12 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
   };
 
   if (loading) return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <p className="text-xs text-gray-400">Loading Instagram panel...</p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <LoadingState message="Loading Instagram panel..." size={32} className="py-3" />
     </div>
   );
 
-  const posterSrc = draft?.posterUrl
-    ? (draft.posterUrl.startsWith("/") ? `${BASE_URL}${draft.posterUrl}` : draft.posterUrl)
-    : null;
+  const posterSrc = mediaUrl(draft?.posterUrl);
 
   const canGenerate = draft && !["PUBLISHING", "PUBLISHED"].includes(draft.status);
   const canApprove = draft && ["READY_FOR_REVIEW", "DRAFT"].includes(draft.status) && draft.posterUrl && (draft.finalCaption || draft.caption);
@@ -199,13 +222,21 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
   const isPublished = draft?.status === "PUBLISHED";
   const isScheduled = draft?.status === "SCHEDULED";
 
+  if (loadError && !draft) return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-5" role="alert">
+      <h2 className="text-sm font-semibold text-red-800">{title || "Instagram Post"} unavailable</h2>
+      <p className="mt-1 text-xs text-red-700">{loadError}</p>
+      <button type="button" onClick={() => { setLoading(true); load(); }} className="mt-3 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100">Try again</button>
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+    <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-50 pb-3">
         <div>
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-            📸 {title || "Instagram Post"}
+            {title || "Instagram Post"}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {postType === "EVENT_PROMOTION" ? "Promote this event before it happens." : "Share the event results with your audience."}
@@ -218,6 +249,12 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
         )}
       </div>
 
+      {loadError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {loadError} <button type="button" onClick={() => { setLoading(true); load(); }} className="ml-1 font-semibold underline">Retry</button>
+        </div>
+      )}
+
       {msg.text && (
         <p className={`text-xs font-medium ${msg.error ? "text-red-500" : "text-green-600"}`}>
           {msg.text}
@@ -229,7 +266,7 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
         <div className="text-center py-4">
           <p className="text-xs text-gray-500 mb-3">No Instagram draft created yet.</p>
           <button onClick={handleCreate} disabled={busy}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 disabled:opacity-60">
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">
             {busy ? "Creating..." : "Create Instagram Draft"}
           </button>
         </div>
@@ -242,6 +279,12 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Image</p>
               <div className="flex flex-wrap gap-2">
+                {postEventImageUrl && (
+                  <button onClick={() => handleSelectImage(postEventImageUrl, "EVENT_COMPLETION_PHOTO")} disabled={busy}
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition ${draft.posterUrl === postEventImageUrl ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                    Post-Event Image
+                  </button>
+                )}
                 {eventPosterUrl && (
                   <button onClick={() => handleSelectImage(eventPosterUrl, "EVENT_POSTER")} disabled={busy}
                     className={`px-3 py-1.5 text-xs rounded-lg border transition ${draft.posterUrl === eventPosterUrl ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
@@ -316,7 +359,7 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
           {isScheduled && (
             <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
               <p className="text-xs text-purple-700 font-semibold">
-                ⏰ Scheduled for {new Date(draft.scheduledAt).toLocaleString()}
+                Scheduled for {new Date(draft.scheduledAt).toLocaleString()}
               </p>
             </div>
           )}
@@ -324,7 +367,7 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
           {/* Published info */}
           {isPublished && history.length > 0 && (
             <div className="bg-green-50 border border-green-100 rounded-xl p-3 space-y-1">
-              <p className="text-xs text-green-700 font-semibold">✓ Published</p>
+              <p className="text-xs font-semibold text-green-700">Published</p>
               {history[0].isMock && (
                 <p className="text-[10px] text-amber-600 font-medium">
                   MOCK PROVIDER — This was a demo publish, not a real Instagram post.
@@ -342,18 +385,18 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
               {canApprove && (
                 <button onClick={handleApprove} disabled={busy}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl disabled:opacity-60">
-                  {busy ? "Approving..." : "✓ Approve"}
+                  {busy ? "Approving..." : "Approve"}
                 </button>
               )}
               {canPublish && (
                 <>
                   <button onClick={handlePublish} disabled={busy || isPublishing}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 disabled:opacity-60">
-                    {isPublishing ? "Publishing..." : "🚀 Publish Now"}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60">
+                    {isPublishing ? "Publishing..." : "Publish now"}
                   </button>
                   <button onClick={() => setShowSchedule((v) => !v)} disabled={busy}
                     className="px-4 py-2 border border-purple-300 text-purple-700 text-xs font-semibold rounded-xl hover:bg-purple-50 disabled:opacity-60">
-                    ⏰ Schedule
+                    Schedule
                   </button>
                 </>
               )}
@@ -365,7 +408,8 @@ export default function InstagramPostPanel({ eventId, postType, eventPosterUrl, 
             <div className="flex items-center gap-2 pt-1">
               <input type="datetime-local" value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                onFocus={() => setScheduleMin(new Date(Date.now() + 60000).toISOString().slice(0, 16))}
+                min={scheduleMin}
                 className="px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
               <button onClick={handleSchedule} disabled={busy}
                 className="px-3 py-2 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-60">

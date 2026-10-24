@@ -1,213 +1,211 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getEventCompletion, submitEventCompletion } from "../../services/eventService";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { generatePostEventImage, getEventCompletion, submitEventCompletion, uploadPoster } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
+import EventImageSelector from "../../components/EventImageSelector";
+import LoadingState from "../../components/LoadingState";
+
+const INITIAL_FORM = {
+  actual_attendance: "",
+  key_highlights: "",
+  winners_achievements: "",
+  special_guests: "",
+  event_outcomes: "",
+  post_to_instagram: "no",
+};
 
 export default function EventCompletionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedRequestKey, setLoadedRequestKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  const [form, setForm] = useState({
-    actual_attendance: "",
-    key_highlights: "",
-    winners_achievements: "",
-    special_guests: "",
-    event_outcomes: "",
-  });
-  const [photos, setPhotos] = useState([]);
-  const [photoPreviews, setPhotoPreviews] = useState([]);
-  const photoInputRef = useRef();
+  const [reloadKey, setReloadKey] = useState(0);
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [postEventImageUrl, setPostEventImageUrl] = useState("");
+  const requestKey = `${id}:${reloadKey}`;
+  const loading = loadedRequestKey !== requestKey;
 
   useEffect(() => {
+    let current = true;
     getEventCompletion(id)
-      .then((res) => setData(res.data.data))
-      .catch(() => setError("Failed to load event details."))
-      .finally(() => setLoading(false));
-  }, [id]);
+      .then((res) => {
+        if (current) {
+          setData(res.data.data);
+          setError("");
+        }
+      })
+      .catch((err) => {
+        if (current) setError(err.response?.data?.message || "Failed to load event details.");
+      })
+      .finally(() => { if (current) setLoadedRequestKey(requestKey); });
+    return () => { current = false; };
+  }, [id, requestKey]);
 
-  const handlePhotoChange = (e) => {
-    const files = Array.from(e.target.files);
-    const combined = [...photos, ...files].slice(0, 10);
-    setPhotos(combined);
-    setPhotoPreviews(combined.map((f) => URL.createObjectURL(f)));
-  };
-
-  const removePhoto = (idx) => {
-    const updated = photos.filter((_, i) => i !== idx);
-    setPhotos(updated);
-    setPhotoPreviews(updated.map((f) => URL.createObjectURL(f)));
-  };
+  const setField = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const attendance = parseInt(form.actual_attendance, 10);
-    if (isNaN(attendance) || attendance < 0) {
-      setError("Actual attendance must be a non-negative number.");
+    const attendance = Number(form.actual_attendance);
+    if (!Number.isInteger(attendance) || attendance < 0 || attendance > 100000) {
+      setError("Actual attendance must be a whole number between 0 and 100,000.");
       return;
     }
+
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      fd.append("actual_attendance", attendance);
-      if (form.key_highlights.trim()) fd.append("key_highlights", form.key_highlights.trim());
-      if (form.winners_achievements.trim()) fd.append("winners_achievements", form.winners_achievements.trim());
-      if (form.special_guests.trim()) fd.append("special_guests", form.special_guests.trim());
-      if (form.event_outcomes.trim()) fd.append("event_outcomes", form.event_outcomes.trim());
-      photos.forEach((f) => fd.append("photos", f));
-      await submitEventCompletion(id, fd);
+      const formData = new FormData();
+      formData.append("actual_attendance", String(attendance));
+      for (const field of ["key_highlights", "winners_achievements", "special_guests", "event_outcomes"]) {
+        const value = form[field].trim();
+        if (value) formData.append(field, value);
+      }
+      if (postEventImageUrl) formData.append("post_event_image_url", postEventImageUrl);
+      formData.append("post_to_instagram", String(form.post_to_instagram === "yes"));
+
+      await submitEventCompletion(id, formData);
       navigate(`/events/${id}/report`);
     } catch (err) {
-      setError(err.response?.data?.message || "Submission failed. Please try again.");
+      setError(err.response?.data?.message || "Submission failed. Your entered details are still available; please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">Loading...</div>;
-  if (error && !data) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-red-500">{error}</div>;
+  if (loading) return <LoadingState message="Loading event details..." />;
+  if (error && !data) return (
+    <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center" role="alert">
+      <h1 className="text-base font-semibold text-red-800">Event details unavailable</h1>
+      <p className="mt-2 text-sm text-red-700">{error}</p>
+      <div className="mt-4 flex justify-center gap-2">
+        <button type="button" onClick={() => navigate(-1)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-white">Go back</button>
+        <button type="button" onClick={() => { setError(""); setReloadKey((key) => key + 1); }} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">Try again</button>
+      </div>
+    </div>
+  );
 
-  const { event, lifecycle_status } = data;
+  const { event, lifecycle_status: lifecycleStatus } = data;
 
-  if (lifecycle_status !== "AWAITING_COMPLETION") {
+  if (lifecycleStatus !== "AWAITING_COMPLETION") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm text-center">
-          <p className="text-sm font-semibold text-gray-700 mb-2">Not eligible for completion</p>
-          <p className="text-xs text-gray-400 mb-4">Current status: <span className="font-medium">{lifecycle_status}</span></p>
-          <button onClick={() => navigate(-1)} className="text-xs text-blue-600 hover:underline">← Go back</button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm rounded-xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+          <p className="mb-2 text-sm font-semibold text-gray-700">Not eligible for completion</p>
+          <p className="mb-4 text-xs text-gray-500">Current status: <span className="font-medium">{lifecycleStatus}</span></p>
+          <button onClick={() => navigate(-1)} className="text-xs text-blue-600 hover:underline">Go back</button>
         </div>
       </div>
     );
   }
 
+  const compactInput = "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const textArea = `${compactInput} resize-y`;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <button onClick={() => navigate(-1)} className="text-xs text-gray-400 hover:text-gray-600 mb-6 flex items-center gap-1">
-          ← Back
-        </button>
+    <div className="min-h-screen bg-gray-50 px-4 py-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <header>
+          <button onClick={() => navigate(-1)} className="mb-2 text-xs text-gray-500 transition hover:text-gray-800">Back</button>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Event completion report</h1>
+          <p className="mt-1 text-xs text-gray-500">Record what happened and preview the post-event image before submitting.</p>
+        </header>
 
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Event Completion</h1>
-        <p className="text-xs text-gray-400 mb-6">Submit the actual details of what happened at the event.</p>
-
-        {/* Read-only event context */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6 space-y-3">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Original Event</h2>
-          <p className="text-base font-bold text-gray-900">{event.title}</p>
-          <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase font-medium">Date</p>
-              <p>{new Date(event.start_date).toLocaleDateString()} – {new Date(event.end_date).toLocaleDateString()}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase font-medium">Time</p>
-              <p>{formatTime12h(event.start_time)} – {formatTime12h(event.end_time)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase font-medium">Venue</p>
-              <p>{event.venue}{event.building ? `, ${event.building}` : ""}{event.room ? `, Room ${event.room}` : ""}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase font-medium">Organizer</p>
-              <p>{event.requester_name}{event.organization_name ? ` · ${event.organization_name}` : ""}</p>
-            </div>
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="text-base font-semibold text-gray-900">{event.title}</h2>
+            <p className="text-xs text-gray-500">{event.category}{event.department?.name ? ` · ${event.department.name}` : ""}</p>
           </div>
-        </div>
+          <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-gray-600 sm:grid-cols-2 lg:grid-cols-4">
+            <p><span className="font-medium text-gray-400">Date</span><br />{new Date(event.start_date).toLocaleDateString()} – {new Date(event.end_date).toLocaleDateString()}</p>
+            <p><span className="font-medium text-gray-400">Time</span><br />{formatTime12h(event.start_time)} – {formatTime12h(event.end_time)}</p>
+            <p><span className="font-medium text-gray-400">Venue</span><br />{event.venue}{event.building ? `, ${event.building}` : ""}{event.room ? `, Room ${event.room}` : ""}</p>
+            <p><span className="font-medium text-gray-400">Organizer</span><br />{event.requester_name}{event.organization_name ? ` · ${event.organization_name}` : ""}</p>
+          </div>
+        </section>
 
-        {/* Completion Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Completion Details</h2>
-
-            <div>
-              <label className="text-xs font-medium text-gray-700 uppercase tracking-wide block mb-1">
-                Actual Attendance <span className="text-red-500">*</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="mb-3 border-b border-gray-100 pb-2 text-sm font-semibold text-gray-800">Completion Details</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="space-y-1 text-xs font-medium text-gray-700">
+                Actual attendance <span className="text-red-500">*</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="1"
+                  required
+                  value={form.actual_attendance}
+                  onChange={(e) => setField("actual_attendance", e.target.value)}
+                  className={compactInput}
+                  placeholder="Enter the actual count"
+                />
               </label>
-              <input
-                type="number" min="0" max="100000" required
-                value={form.actual_attendance}
-                onChange={(e) => setForm((p) => ({ ...p, actual_attendance: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g. 184"
-              />
+              <label className="space-y-1 text-xs font-medium text-gray-700">
+                Special guests
+                <textarea rows={2} maxLength={1000} value={form.special_guests}
+                  onChange={(e) => setField("special_guests", e.target.value)}
+                  className={textArea} placeholder="Names, if applicable" />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-gray-700">
+                Key highlights
+                <textarea rows={3} maxLength={2000} value={form.key_highlights}
+                  onChange={(e) => setField("key_highlights", e.target.value)}
+                  className={textArea} placeholder="Describe the actual highlights" />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-gray-700">
+                Winners / achievements
+                <textarea rows={3} maxLength={2000} value={form.winners_achievements}
+                  onChange={(e) => setField("winners_achievements", e.target.value)}
+                  className={textArea} placeholder="Include only confirmed results" />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-gray-700 sm:col-span-2">
+                Event outcomes
+                <textarea rows={3} maxLength={2000} value={form.event_outcomes}
+                  onChange={(e) => setField("event_outcomes", e.target.value)}
+                  className={textArea} placeholder="Summarize the actual outcomes" />
+              </label>
             </div>
+          </section>
 
-            <div>
-              <label className="text-xs font-medium text-gray-700 uppercase tracking-wide block mb-1">Key Highlights</label>
-              <textarea rows={3} value={form.key_highlights} maxLength={2000}
-                onChange={(e) => setForm((p) => ({ ...p, key_highlights: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Describe what actually happened at the event..."
-              />
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+            <EventImageSelector
+              label="Post-Event Image"
+              value={postEventImageUrl}
+              onChange={setPostEventImageUrl}
+              uploadFn={uploadPoster}
+              generateFn={() => generatePostEventImage(id, {
+                key_highlights: form.key_highlights,
+                winners_achievements: form.winners_achievements,
+                special_guests: form.special_guests,
+                event_outcomes: form.event_outcomes,
+              })}
+            />
+          </section>
+
+          <fieldset className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <legend className="px-1 text-sm font-semibold text-gray-800">Would you like to post this event announcement on Instagram?</legend>
+            <div className="mt-2 flex gap-3">
+              {["yes", "no"].map((option) => (
+                <label key={option} className={`flex min-w-24 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${form.post_to_instagram === option ? "border-purple-500 bg-purple-50 text-purple-800" : "border-gray-200 text-gray-600"}`}>
+                  <input type="radio" name="post_to_instagram" value={option}
+                    checked={form.post_to_instagram === option}
+                    onChange={(e) => setField("post_to_instagram", e.target.value)}
+                    className="accent-purple-600" />
+                  {option === "yes" ? "Yes" : "No"}
+                </label>
+              ))}
             </div>
+            <p className="mt-2 text-xs text-gray-500">Choosing Yes enables the existing Instagram draft and review workflow after the report is saved. No post is started when you choose No.</p>
+          </fieldset>
 
-            <div>
-              <label className="text-xs font-medium text-gray-700 uppercase tracking-wide block mb-1">Winners / Achievements</label>
-              <textarea rows={3} value={form.winners_achievements} maxLength={2000}
-                onChange={(e) => setForm((p) => ({ ...p, winners_achievements: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="List winners, awards, or achievements. Write 'No winners / Not applicable' if none."
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-gray-700 uppercase tracking-wide block mb-1">Special Guests</label>
-              <textarea rows={3} value={form.special_guests} maxLength={1000}
-                onChange={(e) => setForm((p) => ({ ...p, special_guests: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="e.g. Dr. ABC, Director XYZ Technologies"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-gray-700 uppercase tracking-wide block mb-1">Event Outcomes</label>
-              <textarea rows={3} value={form.event_outcomes} maxLength={2000}
-                onChange={(e) => setForm((p) => ({ ...p, event_outcomes: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Describe the actual outcomes and impact of the event..."
-              />
-            </div>
-          </div>
-
-          {/* Photo Upload */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-3">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">
-              Event Photos <span className="font-normal">(up to 10, max 10MB each)</span>
-            </h2>
-            <div
-              className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition"
-              onClick={() => photoInputRef.current.click()}
-            >
-              <p className="text-xs text-gray-400">Click to add photos · JPG, PNG, WebP</p>
-              <input ref={photoInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
-                multiple className="hidden" onChange={handlePhotoChange} />
-            </div>
-            {photoPreviews.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
-                {photoPreviews.map((src, i) => (
-                  <div key={i} className="relative group">
-                    <img src={src} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100" />
-                    <button type="button" onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 
           <button type="submit" disabled={submitting}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-60">
-            {submitting ? "Submitting..." : "Submit Completion"}
+            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
+            {submitting ? "Submitting report..." : "Submit Completion Report"}
           </button>
         </form>
       </div>

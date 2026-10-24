@@ -1,13 +1,24 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendChatMessage } from "../services/chatService";
 
 const SUGGESTED_QUESTIONS = [
-  "Are there any tech events happening within the next 3 days?",
-  "Which upcoming event would be most useful for a Pharmacy student?",
+  "What events are coming up?",
+  "How do I register for an event?",
+  "Help me explore campus activities.",
   "What events are happening this week?",
-  "Show me upcoming coding competitions",
 ];
+
+const LAUNCHER_MESSAGES = [
+  "Have a doubt?",
+  "Need some help?",
+  "Ask CampusConnect",
+  "I'm here to help",
+  "Explore campus events",
+];
+
+const LAUNCHER_MESSAGE_HOLD_MS = 3000;
+const LAUNCHER_MESSAGE_TRANSITION_MS = 300;
 
 /**
  * Lightweight inline markdown renderer for chatbot replies
@@ -45,10 +56,10 @@ function FormattedMessage({ content, onNavigate }) {
               key={i}
               type="button"
               onClick={() => onNavigate(token.url)}
-              className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-800 underline underline-offset-2 cursor-pointer bg-blue-50/70 hover:bg-blue-100/70 px-1.5 py-0.5 rounded transition-colors text-xs mx-0.5"
+              className="cc-chat-link inline-flex items-center gap-1 rounded px-1.5 py-0.5 mx-0.5 text-xs font-semibold underline underline-offset-2 transition-colors"
             >
               <span>{token.label}</span>
-              <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
@@ -60,10 +71,10 @@ function FormattedMessage({ content, onNavigate }) {
             href={token.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 cursor-pointer bg-indigo-50/70 hover:bg-indigo-100/70 px-1.5 py-0.5 rounded transition-colors text-xs mx-0.5"
+            className="cc-chat-link inline-flex items-center gap-1 rounded px-1.5 py-0.5 mx-0.5 text-xs font-semibold underline underline-offset-2 transition-colors"
           >
             <span>{token.label}</span>
-            <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
@@ -113,6 +124,16 @@ function FormattedMessage({ content, onNavigate }) {
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [launcherMessageIndex, setLauncherMessageIndex] = useState(0);
+  const [launcherMessagePhase, setLauncherMessagePhase] = useState("visible");
+  const [launcherMessageDismissed, setLauncherMessageDismissed] = useState(false);
+  const [pageVisible, setPageVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible",
+  );
+  const [reducedMotion, setReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -121,23 +142,102 @@ export default function ChatBot() {
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const panelRef = useRef(null);
+  const launcherRef = useRef(null);
+  const isAtBottomRef = useRef(true);
+  const closeTimeoutRef = useRef(null);
+  const restoreFocusRef = useRef(false);
+  const launcherMessageRemainingRef = useRef(LAUNCHER_MESSAGE_HOLD_MS);
+  const launcherMessageStartedAtRef = useRef(0);
+  const launcherMessageTimerCompletedRef = useRef(false);
   const navigate = useNavigate();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isAtBottomRef.current) {
       scrollToBottom();
     }
   }, [messages, loading, isOpen]);
 
-  // Focus textarea when opening panel
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => textareaRef.current?.focus(), 150);
+      const timeout = window.setTimeout(() => textareaRef.current?.focus(), 100);
+      return () => window.clearTimeout(timeout);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen && !isClosing && restoreFocusRef.current) {
+      restoreFocusRef.current = false;
+      launcherRef.current?.focus();
+    }
+  }, [isOpen, isClosing]);
+
+  useEffect(() => () => window.clearTimeout(closeTimeoutRef.current), []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => setPageVisible(document.visibilityState === "visible");
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleMotionChange = (event) => setReducedMotion(event.matches);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    motionPreference.addEventListener("change", handleMotionChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      motionPreference.removeEventListener("change", handleMotionChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen || isClosing || launcherMessageDismissed || !pageVisible || reducedMotion) return undefined;
+
+    launcherMessageTimerCompletedRef.current = false;
+    launcherMessageStartedAtRef.current = Date.now();
+    const timeout = window.setTimeout(() => {
+      launcherMessageTimerCompletedRef.current = true;
+      launcherMessageRemainingRef.current = LAUNCHER_MESSAGE_HOLD_MS;
+      setLauncherMessagePhase("exiting");
+    }, launcherMessageRemainingRef.current);
+
+    return () => {
+      window.clearTimeout(timeout);
+      if (!launcherMessageTimerCompletedRef.current && launcherMessagePhase === "visible") {
+        const elapsed = Date.now() - launcherMessageStartedAtRef.current;
+        launcherMessageRemainingRef.current = Math.max(0, launcherMessageRemainingRef.current - elapsed);
+      }
+    };
+  }, [isOpen, isClosing, launcherMessageDismissed, launcherMessagePhase, pageVisible, reducedMotion]);
+
+  useEffect(() => {
+    if (isOpen || isClosing || launcherMessageDismissed || !pageVisible || reducedMotion) return undefined;
+    if (launcherMessagePhase === "exiting") {
+      const timeout = window.setTimeout(() => {
+        setLauncherMessageIndex((index) => (index + 1) % LAUNCHER_MESSAGES.length);
+        setLauncherMessagePhase("entering");
+      }, LAUNCHER_MESSAGE_TRANSITION_MS);
+      return () => window.clearTimeout(timeout);
+    }
+
+    if (launcherMessagePhase === "entering") {
+      const timeout = window.setTimeout(() => setLauncherMessagePhase("visible"), LAUNCHER_MESSAGE_TRANSITION_MS);
+      return () => window.clearTimeout(timeout);
+    }
+    return undefined;
+  }, [isOpen, isClosing, launcherMessageDismissed, launcherMessagePhase, pageVisible, reducedMotion]);
+
+  const handleClose = useCallback(() => {
+    if (!isOpen) return;
+    restoreFocusRef.current = true;
+    setIsOpen(false);
+    setIsClosing(true);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsClosing(false);
+    }, 260);
   }, [isOpen]);
 
   const handleSend = async (textToSend) => {
@@ -147,8 +247,9 @@ export default function ChatBot() {
     setError(null);
     setLastFailedMessage(null);
     setInput("");
+    isAtBottomRef.current = true;
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    // Add user message to conversation
     const newMessages = [...messages, { role: "user", content: query, timestamp: new Date() }];
     setMessages(newMessages);
     setLoading(true);
@@ -193,10 +294,37 @@ export default function ChatBot() {
   };
 
   const handleClearChat = () => {
+    if (loading) return;
     setMessages([]);
     setError(null);
     setLastFailedMessage(null);
   };
+
+  const handleOpen = () => {
+    window.clearTimeout(closeTimeoutRef.current);
+    setIsClosing(false);
+    setIsOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleOutsidePointerDown = (event) => {
+      if (event.button !== 0) return;
+      if (!(event.target instanceof Node)) return;
+      if (panelRef.current?.contains(event.target) || launcherRef.current?.contains(event.target)) return;
+      handleClose();
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    const handleEscape = (event) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen, handleClose]);
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -205,61 +333,88 @@ export default function ChatBot() {
   return (
     <>
       {/* ── Floating Chatbot Button (Closed State) ────────────────────────── */}
-      {!isOpen && (
-        <div className="fixed bottom-5 right-5 z-40 flex items-center group">
-          {/* Subtle hover tooltip */}
-          <span className="hidden sm:inline-block mr-2.5 px-3 py-1.5 bg-gray-900/90 text-white text-xs font-medium rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none backdrop-blur-sm">
-            Ask CampusConnect AI
-          </span>
+      {!isOpen && !isClosing && (
+        <div className="cc-chat-launcher fixed bottom-5 right-5 z-40 flex items-center gap-2">
+          {!launcherMessageDismissed && (
+            <div className="cc-chat-invitation relative">
+              <button
+                type="button"
+                className="cc-chat-invitation-board"
+                onClick={handleOpen}
+                aria-label={`Open CampusConnect AI: ${LAUNCHER_MESSAGES[launcherMessageIndex]}`}
+              >
+                <span className="cc-chat-invitation-viewport" aria-live="off">
+                  <span
+                    key={launcherMessageIndex}
+                    className={`cc-chat-invitation-message ${!reducedMotion && launcherMessagePhase === "exiting" ? "cc-chat-invitation-message-exit" : ""} ${!reducedMotion && launcherMessagePhase === "entering" ? "cc-chat-invitation-message-enter" : ""}`}
+                  >
+                    {LAUNCHER_MESSAGES[launcherMessageIndex]}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="cc-chat-invitation-dismiss"
+                onClick={() => setLauncherMessageDismissed(true)}
+                aria-label="Dismiss chatbot invitation"
+                title="Dismiss"
+              >
+                <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
+                  <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          )}
           <button
+            ref={launcherRef}
             id="open-chatbot-btn"
-            onClick={() => setIsOpen(true)}
+            onClick={handleOpen}
             aria-label="Open CampusConnect AI Chatbot"
-            className="w-13 h-13 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer border-2 border-white/80 relative"
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+            className="cc-chat-launcher-button flex h-14 w-14 items-center justify-center rounded-full cursor-pointer relative"
           >
-            {/* Sparkles / Chatbot SVG Icon */}
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
+                strokeWidth="1.8"
                 d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
               />
             </svg>
-            {/* Active pulse dot */}
-            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-            </span>
           </button>
         </div>
       )}
 
       {/* ── Floating Chatbot Window (Open State) ───────────────────────────── */}
-      {isOpen && (
+      {(isOpen || isClosing) && (
         <div
           id="chatbot-window"
-          className="fixed bottom-5 right-5 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-6rem)] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200/90 overflow-hidden transition-all duration-200 animate-in fade-in zoom-in-95"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="chatbot-title"
+          aria-hidden={isClosing}
+          ref={panelRef}
+          className={`cc-chat-window fixed bottom-5 right-5 z-50 flex flex-col overflow-hidden rounded-2xl ${isClosing ? "cc-chat-window-exit" : ""}`}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3.5 px-4 flex items-center justify-between shadow-md">
+          <div className="cc-chat-header flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white shadow-inner">
-                <svg className="w-5 h-5 text-blue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="cc-chat-header-icon flex h-10 w-10 items-center justify-center rounded-xl">
+                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
+                    strokeWidth="1.8"
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-bold tracking-tight text-white">CampusConnect AI</h3>
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <h3 id="chatbot-title" className="text-sm font-bold tracking-tight">CampusConnect AI</h3>
                 </div>
-                <p className="text-[11px] text-blue-100/90 font-medium">Real-time CHARUSAT Event Guide</p>
+                <p className="cc-chat-subtitle text-[11px] font-medium">Your campus assistant</p>
               </div>
             </div>
 
@@ -268,11 +423,12 @@ export default function ChatBot() {
                 <button
                   type="button"
                   onClick={handleClearChat}
+                  disabled={loading}
                   title="Clear conversation"
                   aria-label="Clear conversation"
-                  className="p-1.5 text-blue-100 hover:text-white hover:bg-white/15 rounded-lg transition-colors cursor-pointer"
+                  className="cc-chat-icon-button rounded-lg p-2 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -285,12 +441,12 @@ export default function ChatBot() {
               <button
                 id="close-chatbot-btn"
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 title="Minimize chatbot"
                 aria-label="Close chatbot"
-                className="p-1.5 text-blue-100 hover:text-white hover:bg-white/15 rounded-lg transition-colors cursor-pointer"
+                className="cc-chat-icon-button rounded-lg p-2 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -298,36 +454,37 @@ export default function ChatBot() {
           </div>
 
           {/* Messages Body */}
-          <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3.5 bg-gray-50/60">
+          <div
+            className="cc-chat-body flex-1 space-y-3.5 overflow-y-auto p-3.5 sm:p-4"
+            onScroll={(event) => {
+              const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+              isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+            }}
+          >
             {/* Empty State Welcome & Suggestions */}
             {messages.length === 0 && (
-              <div className="space-y-4 pt-2">
-                <div className="bg-white rounded-2xl p-4 border border-blue-100/80 shadow-sm text-center">
-                  <div className="w-11 h-11 bg-gradient-to-tr from-blue-50 to-indigo-50 border border-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2 text-xl shadow-inner">
-                    ✨
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Welcome to CampusConnect AI!</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Ask me any questions about CHARUSAT events, workshops, registrations, venues, or schedules.
+              <div className="cc-chat-empty space-y-5 pt-3">
+                <div className="text-center">
+                  <h4 className="text-lg font-bold tracking-tight">How can I help you?</h4>
+                  <p className="cc-chat-muted mt-2 text-xs leading-relaxed">
+                    Ask me about campus events, activities, and CampusConnect.
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                    Suggested Questions
-                  </p>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {SUGGESTED_QUESTIONS.map((q, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => handleSend(q)}
                         disabled={loading}
-                        className="w-full text-left text-xs bg-white hover:bg-blue-50/80 hover:border-blue-200 text-gray-700 hover:text-blue-700 p-2.5 rounded-xl border border-gray-200 transition-all shadow-xs cursor-pointer flex items-center justify-between group"
+                        className="cc-chat-suggestion flex w-full items-center justify-between gap-2 rounded-xl border p-3 text-left text-xs transition-all"
                       >
-                        <span className="line-clamp-2">{q}</span>
+                        <span>{q}</span>
                         <svg
-                          className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-colors shrink-0 ml-1.5"
+                          aria-hidden="true"
+                          className="cc-chat-muted h-4 w-4 shrink-0 transition-colors"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -345,22 +502,22 @@ export default function ChatBot() {
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+                className={`cc-chat-message flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`px-3.5 py-2.5 rounded-2xl max-w-[88%] shadow-xs ${
+                  className={`cc-chat-bubble max-w-[88%] rounded-2xl px-3.5 py-2.5 ${
                     msg.role === "user"
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-xs"
-                      : "bg-white text-gray-800 rounded-tl-xs border border-gray-200/90 shadow-sm"
+                      ? "cc-chat-user rounded-tr-sm"
+                      : "cc-chat-assistant rounded-tl-sm"
                   }`}
                 >
                   {msg.role === "user" ? (
                     <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   ) : (
-                    <FormattedMessage content={msg.content} onNavigate={handleNavigate} />
+                    <div className="cc-chat-richtext"><FormattedMessage content={msg.content} onNavigate={handleNavigate} /></div>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400 mt-1 px-1">
+                <span className="cc-chat-muted mt-1 px-1 text-[10px]">
                   {msg.timestamp
                     ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                     : ""}
@@ -370,23 +527,23 @@ export default function ChatBot() {
 
             {/* Loading Indicator */}
             {loading && (
-              <div className="flex items-start gap-2">
-                <div className="bg-white border border-gray-200/90 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-sm flex items-center gap-2">
-                  <div className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></span>
+              <div className="cc-chat-message flex items-start gap-2" role="status" aria-label="CampusConnect AI is thinking">
+                <div className="cc-chat-assistant flex items-center gap-2 rounded-2xl rounded-tl-sm border px-3.5 py-2.5">
+                  <div className="flex items-center gap-1">
+                    <span className="cc-chat-dot"></span>
+                    <span className="cc-chat-dot"></span>
+                    <span className="cc-chat-dot"></span>
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">Finding relevant events...</span>
+                  <span className="cc-chat-muted text-xs font-medium">Thinking...</span>
                 </div>
               </div>
             )}
 
             {/* Error Message with Retry */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 flex items-center justify-between gap-2 shadow-xs">
+              <div className="cc-chat-error flex items-center justify-between gap-2 rounded-xl border p-3 text-xs" role="alert">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -400,7 +557,7 @@ export default function ChatBot() {
                   <button
                     type="button"
                     onClick={handleRetry}
-                    className="shrink-0 font-semibold underline text-red-800 hover:text-red-900 cursor-pointer"
+                    className="shrink-0 cursor-pointer font-semibold underline"
                   >
                     Retry
                   </button>
@@ -412,7 +569,7 @@ export default function ChatBot() {
           </div>
 
           {/* Footer Input Area */}
-          <div className="p-3 bg-white border-t border-gray-100 shadow-inner">
+          <div className="cc-chat-composer border-t p-3">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -422,29 +579,34 @@ export default function ChatBot() {
             >
               <textarea
                 ref={textareaRef}
+                aria-label="Message the CampusConnect event assistant"
                 rows={1}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about events, dates, eligibility..."
+                placeholder="Ask anything about CampusConnect..."
                 maxLength={500}
                 disabled={loading}
-                className="flex-1 resize-none bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition-all max-h-24 min-h-[38px]"
+                onChange={(event) => {
+                  setInput(event.target.value);
+                  event.target.style.height = "auto";
+                  event.target.style.height = `${Math.min(event.target.scrollHeight, 96)}px`;
+                }}
+                className="cc-chat-textarea min-h-[42px] max-h-24 flex-1 resize-none rounded-xl border px-3.5 py-2 text-xs transition-all sm:text-sm"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
                 aria-label="Send message"
-                className="h-[38px] w-[38px] bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl flex items-center justify-center transition-all duration-150 shadow-sm cursor-pointer shrink-0"
+                className="cc-chat-send flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl transition-all"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
             </form>
-            <div className="flex items-center justify-between mt-1.5 px-1 text-[10px] text-gray-400">
+            <div className="cc-chat-muted mt-1.5 flex items-center justify-between px-1 text-[10px]">
               <span>Enter to send, Shift+Enter for new line</span>
-              <span>Grounded in CHARUSAT events</span>
+              <span>CampusConnect assistant</span>
             </div>
           </div>
         </div>

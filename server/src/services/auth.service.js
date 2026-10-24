@@ -139,10 +139,20 @@ export const resendOTP = async ({ email }) => {
   };
 };
 
-export const login = async ({ email, password }) => {
-  const normalizedEmail = email.toLowerCase();
+export const login = async ({ identifier, email, password }) => {
+  const loginIdentifier = (identifier || email || "").trim();
+  if (!loginIdentifier) {
+    const error = new Error("Institution email or ID is required.");
+    error.status = 400;
+    throw error;
+  }
 
-  const user = await User.findOne({ email: normalizedEmail });
+  const user = await User.findOne({
+    $or: [
+      { email: loginIdentifier.toLowerCase() },
+      { institutionId: loginIdentifier.toUpperCase() },
+    ],
+  });
 
   if (!user) {
     const error = new Error("Invalid email or password.");

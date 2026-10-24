@@ -1,6 +1,4 @@
-import React from "react";
-
-export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", type = "warning" }) {
+export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", type = "warning", confirmDisabled = false, cancelDisabled = false }) {
   if (!isOpen) return null;
   
   const iconColor = type === "danger" ? "bg-red-50 text-red-600 border-red-100" : "bg-amber-50 text-amber-600 border-amber-100";
@@ -28,14 +26,16 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 px-3 text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition cursor-pointer"
+            disabled={cancelDisabled}
+            className="flex-1 py-2 px-3 text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`flex-1 py-2 px-3 text-xs font-semibold text-white rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer ${buttonColor}`}
+            disabled={confirmDisabled}
+            className={`flex-1 py-2 px-3 text-xs font-semibold text-white rounded-lg focus:outline-none focus:ring-2 transition cursor-pointer disabled:cursor-wait disabled:opacity-60 ${buttonColor}`}
           >
             {confirmText}
           </button>

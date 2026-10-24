@@ -1,17 +1,12 @@
-import React, { useState } from "react";
-
-const BASE_URL = "http://localhost:5001";
+import { useState } from "react";
+import { mediaUrl } from "../utils/mediaUrl";
 
 export default function PosterOverlayPreview({ event, completion, posterUrl, posterType = "official" }) {
   const [showModal, setShowModal] = useState(false);
 
   if (!event) return null;
 
-  const bgUrl = posterUrl
-    ? posterUrl.startsWith("http") || posterUrl.startsWith("data:")
-      ? posterUrl
-      : `${BASE_URL}${posterUrl}`
-    : null;
+  const bgUrl = posterUrl ? mediaUrl(posterUrl) : null;
 
   const isActivityPoster = posterType === "activity";
 
@@ -44,7 +39,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
         {/* Hover overlay hint */}
         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none z-20">
           <span className="bg-white/25 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full border border-white/30 shadow-xl flex items-center gap-1.5">
-            🔍 Click to Enlarge / View Lightbox
+            Click to enlarge
           </span>
         </div>
 
@@ -62,7 +57,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
                 </p>
               </div>
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-xs font-bold shadow">
-                🎓
+                CC
               </div>
             </div>
 
@@ -109,7 +104,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
             {/* Top Floating Badge */}
             <div className="relative z-10 flex items-center justify-between">
               <span className="px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/90 text-white backdrop-blur-md shadow-lg border border-white/20">
-                🔥 EVENT ACTION & HIGHLIGHTS
+                EVENT HIGHLIGHTS
               </span>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/50 backdrop-blur-md border border-white/20 text-gray-200">
                 {event.category || "General"}
@@ -121,7 +116,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
               <div className="truncate pr-2">
                 <p className="text-xs font-bold text-white truncate">{event.title}</p>
                 <p className="text-[10px] text-amber-300 truncate">
-                  📍 {event.venue} · 📅 {new Date(event.start_date).toLocaleDateString()}
+                  {event.venue} · {new Date(event.start_date).toLocaleDateString()}
                 </p>
               </div>
               <span className="text-[10px] bg-amber-500 text-white px-2.5 py-1 rounded-xl font-bold shrink-0 shadow">
@@ -140,7 +135,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
             onClick={() => setShowModal(true)}
             className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl border border-indigo-200 transition flex items-center gap-1.5 shadow-sm"
           >
-            🔍 View Fullscreen Lightbox
+            View full size
           </button>
           <a
             href={bgUrl}
@@ -149,7 +144,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
             download={`poster-${event.title.toLowerCase().replace(/\s+/g, "-")}.png`}
             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl border border-gray-200 transition flex items-center gap-1.5 shadow-sm"
           >
-            📥 Download Image
+            Download image
           </a>
         </div>
       )}
@@ -166,7 +161,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
           >
             <div className="flex items-center justify-between p-4 bg-gray-950 border-b border-gray-800 text-white">
               <h3 className="text-sm font-bold truncate">
-                {isActivityPoster ? "🔥 Poster 2 — Event Action Visual Scene" : "📢 Poster 1 — Official Event Poster"}
+                {isActivityPoster ? "Event highlights poster" : "Official event poster"}
               </h3>
               <button 
                 onClick={() => setShowModal(false)}
@@ -193,7 +188,7 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
                 download={`poster-${event.title.toLowerCase().replace(/\s+/g, "-")}.png`}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow transition"
               >
-                📥 Download Full High-Res
+                Download full-size image
               </a>
             </div>
           </div>
@@ -202,4 +197,3 @@ export default function PosterOverlayPreview({ event, completion, posterUrl, pos
     </div>
   );
 }
-

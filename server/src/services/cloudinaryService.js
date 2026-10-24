@@ -64,9 +64,12 @@ export async function uploadImageToCloudinary(filePathOrBase64, folder = "campus
   // Local fallback storage logic for base64
   if (filePathOrBase64.startsWith("data:image")) {
     try {
-      const base64Data = filePathOrBase64.replace(/^data:image\/\w+;base64,/, "");
+      const dataUriMatch = filePathOrBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/);
+      if (!dataUriMatch) throw new Error("Invalid image data URI.");
+      const [, mimeType, base64Data] = dataUriMatch;
       const buffer = Buffer.from(base64Data, "base64");
-      const filename = `poster-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
+      const extension = mimeType === "image/svg+xml" ? "svg" : mimeType.split("/")[1].replace("jpeg", "jpg");
+      const filename = `poster-${Date.now()}-${Math.round(Math.random() * 1e9)}.${extension}`;
       const targetDir = path.join(process.cwd(), "uploads", "events");
       if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
       const targetPath = path.join(targetDir, filename);
@@ -74,6 +77,7 @@ export async function uploadImageToCloudinary(filePathOrBase64, folder = "campus
       return `/uploads/events/${filename}`;
     } catch (e) {
       console.error("Local base64 save error:", e.message);
+      throw e;
     }
   }
 

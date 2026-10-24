@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { adminGetRequest, adminApproveRequest, adminRejectRequest, adminEditRequest, getEventCompletion } from "../../services/eventService";
 import { ConfirmationModal } from "../../components/Modal";
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
-
-const BASE_URL = "http://localhost:5001";
+import { mediaUrl } from "../../utils/mediaUrl";
+import LoadingState from "../../components/LoadingState";
 
 const Row = ({ label, value }) =>
   value ? (
@@ -24,9 +24,12 @@ const STATUS_BADGE = {
 export default function AdminRequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { refreshStats, applyDecisionToStats } = useOutletContext();
   const [data, setData] = useState(null);
   const [completionData, setCompletionData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [completionError, setCompletionError] = useState("");
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -41,10 +44,15 @@ export default function AdminRequestDetailPage() {
     festival_day: "",
   });
   const [actionLoading, setActionLoading] = useState(null);
+  const actionInProgress = useRef(false);
   const [toast, setToast] = useState(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
+    setLoadError("");
+    setCompletionError("");
+    setData(null);
+    setCompletionData(null);
     adminGetRequest(id)
       .then((r) => {
         setData(r.data.data);
@@ -64,14 +72,19 @@ export default function AdminRequestDetailPage() {
           festival_day: r.data.data.admin_metadata?.festival_day || "",
         });
       })
-      .catch(() => navigate("/admin/all"))
+      .catch((e) => setLoadError(e.response?.data?.message || "This request could not be loaded. Please retry."))
       .finally(() => setLoading(false));
-    getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => { });
-  };
+    getEventCompletion(id)
+      .then((r) => setCompletionData(r.data.data))
+      .catch((e) => setCompletionError(e.response?.data?.message || "Completion information could not be loaded."));
+  }, [id]);
 
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    const timeout = window.setTimeout(load, 0);
+    return () => window.clearTimeout(timeout);
+  }, [load]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -83,24 +96,32 @@ export default function AdminRequestDetailPage() {
   };
 
   const handleConfirmApprove = async () => {
-    setShowApproveConfirm(false);
+    if (actionInProgress.current) return;
+    actionInProgress.current = true;
     setActionLoading("approve");
     try {
-      await adminApproveRequest(id, { admin_metadata: adminMetadata });
+      const response = await adminApproveRequest(id, { admin_metadata: adminMetadata });
+      applyDecisionToStats(response.data.data?.status || "Approved");
+      await refreshStats();
+      setShowApproveConfirm(false);
       showToast("Event request approved.");
       load();
     } catch (e) {
       showToast(e.response?.data?.message || "Failed to approve.", "error");
     } finally {
+      actionInProgress.current = false;
       setActionLoading(null);
     }
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) return;
+    if (!rejectReason.trim() || actionInProgress.current) return;
+    actionInProgress.current = true;
     setActionLoading("reject");
     try {
-      await adminRejectRequest(id, rejectReason);
+      const response = await adminRejectRequest(id, rejectReason);
+      applyDecisionToStats(response.data.data?.status || "Rejected");
+      await refreshStats();
       showToast("Event request rejected.");
       setRejectOpen(false);
       setRejectReason("");
@@ -108,11 +129,14 @@ export default function AdminRequestDetailPage() {
     } catch (e) {
       showToast(e.response?.data?.message || "Failed to reject.", "error");
     } finally {
+      actionInProgress.current = false;
       setActionLoading(null);
     }
   };
 
   const handleEdit = async () => {
+    if (actionInProgress.current) return;
+    actionInProgress.current = true;
     setActionLoading("edit");
     try {
       await adminEditRequest(id, { ...editFields, admin_metadata: adminMetadata });
@@ -122,15 +146,27 @@ export default function AdminRequestDetailPage() {
     } catch (e) {
       showToast(e.response?.data?.message || "Failed to save.", "error");
     } finally {
+      actionInProgress.current = false;
       setActionLoading(null);
     }
   };
 
-  if (loading) return <div className="py-16 text-center text-sm text-gray-400">Loading...</div>;
-  if (!data) return null;
+  if (loading && !data) return <LoadingState message="Loading request details..." />;
+  if (!data) {
+    return (
+      <div role="alert" className="mx-auto max-w-xl rounded-xl border border-red-100 bg-white p-6 text-center shadow-sm">
+        <p className="text-sm font-semibold text-gray-900">Request unavailable</p>
+        <p className="mt-2 text-sm text-gray-500">{loadError || "This request could not be found."}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <button onClick={load} disabled={loading} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">{loading ? "Retrying..." : "Retry"}</button>
+          <button onClick={() => navigate("/admin/all")} className="rounded-lg border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">All requests</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-5xl space-y-4">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg ${toast.type === "error" ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}>
@@ -200,15 +236,16 @@ export default function AdminRequestDetailPage() {
         </div>
       )}
 
-      <button onClick={() => navigate(-1)} className="text-xs text-gray-400 hover:text-gray-600 mb-4 flex items-center gap-1">
-        ← Back
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 rounded-lg py-1 text-xs font-medium text-gray-500 hover:text-blue-700">
+        Back to requests
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">{data.title}</h1>
-          <p className="text-xs text-gray-400 mt-0.5 font-mono">ID: {data.event_id}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Event request</p>
+          <h1 className="mt-1 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">{data.title}</h1>
+          <p className="mt-1 text-xs text-gray-500 font-mono">ID: {data.event_id}</p>
         </div>
         <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap ${STATUS_BADGE[data.status] || "bg-gray-100 text-gray-500"}`}>
           {data.status}
@@ -217,7 +254,7 @@ export default function AdminRequestDetailPage() {
 
       {/* Action Buttons */}
       {data.status === "Pending Approval" && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2">
           <div className="flex gap-2">
             <button
               onClick={handleApproveClick}
@@ -234,8 +271,8 @@ export default function AdminRequestDetailPage() {
               Reject Request
             </button>
           </div>
-          <button onClick={() => setEditOpen(true)} className="px-4 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
-            ✎ Edit
+          <button onClick={() => setEditOpen(true)} className="rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+            Edit request
           </button>
         </div>
       )}
@@ -261,7 +298,7 @@ export default function AdminRequestDetailPage() {
       )}
 
       {/* Administrative Settings Card */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-5 space-y-4 shadow-sm">
+      <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex justify-between items-center border-b border-gray-50 pb-2">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Administrative & Publishing Settings</p>
           {data.status !== "Pending Approval" && (
@@ -278,9 +315,9 @@ export default function AdminRequestDetailPage() {
                 onChange={(e) => setAdminMetadata((prev) => ({ ...prev, tier: e.target.value }))}
                 className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-                <option value="Top Tier">⭐ Top Tier</option>
-                <option value="Medium Tier">⭐⭐ Medium Tier</option>
-                <option value="Low Tier">⭐⭐⭐ Low Tier</option>
+                <option value="Top Tier">Top Tier</option>
+                <option value="Medium Tier">Medium Tier</option>
+                <option value="Low Tier">Low Tier</option>
               </select>
             ) : (
               <p className="text-xs font-medium text-gray-800">{adminMetadata.tier || "Low Tier"}</p>
@@ -358,7 +395,7 @@ export default function AdminRequestDetailPage() {
                 Mark as Featured Event
               </label>
             ) : (
-              <p className="text-xs font-semibold text-blue-600">{adminMetadata.is_featured ? "⭐ Featured Event" : "Not Featured"}</p>
+              <p className="text-xs font-semibold text-blue-700">{adminMetadata.is_featured ? "Featured event" : "Not featured"}</p>
             )}
           </div>
         </div>
@@ -385,11 +422,11 @@ export default function AdminRequestDetailPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* Requester Info */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Requester Information</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Row label="Name" value={data.requester_name} />
             <Row label="Role" value={data.requester_role === "Other" ? data.custom_role : data.requester_role} />
             <Row label="Organization Type" value={data.organization_type} />
@@ -401,9 +438,9 @@ export default function AdminRequestDetailPage() {
         </div>
 
         {/* Event Info */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Event Information</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
             <Row label="Category" value={data.category} />
             <Row label="Department" value={data.department_id?.name} />
             <Row label="Club" value={data.club_name} />
@@ -425,26 +462,26 @@ export default function AdminRequestDetailPage() {
 
         {/* Media */}
         {(data.poster_url || data.qr_code_url || data.brochure_url) && (
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Media</p>
             <div className="flex flex-wrap gap-4">
               {data.poster_url && (
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Poster</p>
-                  <img src={`${BASE_URL}${data.poster_url}`} alt="poster" className="max-h-48 rounded-lg object-contain border border-gray-100" />
+                  <img src={mediaUrl(data.poster_url)} alt="poster" className="max-h-48 rounded-lg object-contain border border-gray-100" />
                 </div>
               )}
               {data.qr_code_url && (
                 <div>
                   <p className="text-xs text-gray-400 mb-1">QR Code</p>
-                  <img src={`${BASE_URL}${data.qr_code_url}`} alt="qr" className="h-32 w-32 rounded-lg object-contain border border-gray-100" />
+                  <img src={mediaUrl(data.qr_code_url)} alt="qr" className="h-32 w-32 rounded-lg object-contain border border-gray-100" />
                 </div>
               )}
               {data.brochure_url && (
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Brochure</p>
-                  <a href={`${BASE_URL}${data.brochure_url}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
-                    📄 Download PDF
+                  <a href={mediaUrl(data.brochure_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                    Download PDF
                   </a>
                 </div>
               )}
@@ -454,7 +491,7 @@ export default function AdminRequestDetailPage() {
 
         {/* Registration */}
         {data.registration_required && (
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Registration</p>
             <div className="grid grid-cols-2 gap-4">
               <Row label="Required" value="Yes" />
@@ -470,7 +507,7 @@ export default function AdminRequestDetailPage() {
 
         {/* Social Links */}
         {[data.website_url, data.instagram_url, data.linkedin_url, data.facebook_url, data.whatsapp_url, data.google_map_url].some(Boolean) && (
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Links</p>
             <div className="flex flex-col gap-1.5">
               {[
@@ -503,7 +540,7 @@ export default function AdminRequestDetailPage() {
                 return (
                   <div key={i} className="px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg">
                     <span className="text-xs font-medium text-blue-800">
-                      {a.audience_type === "OTHER" ? `Other → ${label}` : label}
+                      {a.audience_type === "OTHER" ? `Other: ${label}` : label}
                     </span>
                   </div>
                 );
@@ -516,7 +553,11 @@ export default function AdminRequestDetailPage() {
       </div>
 
       {/* Event Completion (admin read-only view) */}
-      {completionData?.completion && (
+      {completionError ? (
+        <div role="alert" className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          {completionError} Completion details are currently unavailable.
+        </div>
+      ) : completionData?.completion && (
         <div className="bg-white rounded-xl border border-gray-100 p-5 mt-4 space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50 pb-2">Event Completion</p>
           <div className="grid grid-cols-2 gap-4 text-xs">
@@ -553,16 +594,23 @@ export default function AdminRequestDetailPage() {
               </div>
             )}
           </div>
-          {completionData.completion.photos?.length > 0 && (
+          {(completionData.completion.post_event_image_url || completionData.completion.photos?.length > 0) && (
             <div>
-              <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Event Photos</p>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {completionData.completion.photos.map((url, i) => (
-                  <a key={i} href={`${BASE_URL}${url}`} target="_blank" rel="noreferrer">
-                    <img src={`${BASE_URL}${url}`} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
-                  </a>
-                ))}
-              </div>
+              <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Post-Event Image</p>
+              {completionData.completion.post_event_image_url && (
+                <a href={mediaUrl(completionData.completion.post_event_image_url)} target="_blank" rel="noreferrer">
+                  <img src={mediaUrl(completionData.completion.post_event_image_url)} alt="Post-event image" className="mb-2 max-h-48 max-w-40 rounded-lg border border-gray-100 object-contain" />
+                </a>
+              )}
+              {completionData.completion.photos?.length > 0 && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {completionData.completion.photos.map((url, i) => (
+                    <a key={i} href={mediaUrl(url)} target="_blank" rel="noreferrer">
+                      <img src={mediaUrl(url)} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -573,7 +621,7 @@ export default function AdminRequestDetailPage() {
         <div className="bg-white rounded-xl border border-gray-100 p-5 mt-4 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-50 pb-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">AI Event Report</p>
-            {completionData.report.generation_status === "GENERATED" && <span className="text-xs text-green-600 font-semibold">Generated ✓</span>}
+            {completionData.report.generation_status === "GENERATED" && <span className="text-xs text-green-600 font-semibold">Report generated</span>}
             {completionData.report.generation_status === "GENERATING" && <span className="text-xs text-amber-500 font-semibold">Generating...</span>}
             {completionData.report.generation_status === "FAILED" && <span className="text-xs text-red-500 font-semibold">Failed</span>}
           </div>
@@ -615,8 +663,10 @@ export default function AdminRequestDetailPage() {
         onConfirm={handleConfirmApprove}
         title="Approve Request"
         message="Are you sure you want to approve this event request? It will be visible to students."
-        confirmText="Approve"
+        confirmText={actionLoading === "approve" ? "Approving..." : "Approve"}
         type="warning"
+        confirmDisabled={!!actionLoading}
+        cancelDisabled={!!actionLoading}
       />
     </div>
   );

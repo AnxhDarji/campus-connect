@@ -1,10 +1,10 @@
 export default function FormSection({ title, children }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      <h3 className="mb-3 border-b border-gray-100 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-700 sm:text-sm">
         {title}
       </h3>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
-    </div>
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">{children}</div>
+    </section>
   );
 }

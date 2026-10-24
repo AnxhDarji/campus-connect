@@ -2,26 +2,43 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getFestivalEvents } from "../../services/eventService";
 import { formatTime12h } from "../../utils/timeFormatter";
-
-const BASE_URL = "http://localhost:5001";
+import { mediaUrl } from "../../utils/mediaUrl";
+import LoadingState from "../../components/LoadingState";
 
 export default function FestivalPage() {
   const { festivalName } = useParams();
   const navigate = useNavigate();
   const [daysData, setDaysData] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loadedRequestKey, setLoadedRequestKey] = useState("");
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const requestKey = `${festivalName}:${reloadKey}`;
+  const loading = loadedRequestKey !== requestKey;
 
   useEffect(() => {
-    setLoading(true);
+    let current = true;
     getFestivalEvents(festivalName)
       .then((res) => {
-        setDaysData(res.data.data || {});
+        if (current) {
+          setDaysData(res.data.data || {});
+          setError("");
+        }
       })
-      .catch(() => { })
-      .finally(() => setLoading(false));
-  }, [festivalName]);
+      .catch((err) => {
+        if (current) setError(err.response?.data?.message || "Unable to load this festival schedule. Please try again.");
+      })
+      .finally(() => { if (current) setLoadedRequestKey(requestKey); });
+    return () => { current = false; };
+  }, [festivalName, requestKey]);
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">Loading festival timeline...</div>;
+  if (loading) return <LoadingState message="Loading festival timeline..." />;
+  if (error) return (
+    <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center" role="alert">
+      <h1 className="text-base font-semibold text-red-800">Schedule unavailable</h1>
+      <p className="mt-2 text-sm text-red-700">{error}</p>
+      <button type="button" onClick={() => { setError(""); setReloadKey((key) => key + 1); }} className="mt-4 rounded-lg border border-red-300 px-4 py-2 text-xs font-semibold text-red-800 transition hover:bg-red-100">Try again</button>
+    </div>
+  );
 
   const days = Object.keys(daysData).sort((a, b) => Number(a) - Number(b));
 
@@ -33,21 +50,21 @@ export default function FestivalPage() {
           onClick={() => navigate("/events")}
           className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition cursor-pointer"
         >
-          ← Back to Feed
+          Back to events
         </button>
       </div>
 
       {/* Festival Banner */}
-      <div className="rounded-3xl bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 p-8 sm:p-12 text-white shadow-lg text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.2),transparent)] pointer-events-none" />
+      <div className="cc-festival-banner relative overflow-hidden rounded-2xl p-7 text-center text-white shadow-sm sm:p-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(120,153,212,0.12),transparent)]" />
         <div className="relative z-10 space-y-3">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-200 border border-purple-500/30">
-            🎪 Campus Festival
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+            Campus festival
           </span>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight capitalize">
             {festivalName}
           </h1>
-          <p className="text-sm text-purple-200 max-w-lg mx-auto leading-relaxed">
+          <p className="mx-auto max-w-lg text-sm leading-relaxed text-white/85">
             Welcome to the official schedule of the {festivalName} festival. Explore daily sessions, competitions, and programs.
           </p>
         </div>
@@ -56,12 +73,11 @@ export default function FestivalPage() {
       {/* Timeline Section */}
       {days.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-          <span className="text-4xl">🎪</span>
-          <h3 className="text-base font-bold text-gray-900 mt-4">No events scheduled</h3>
+          <h3 className="text-base font-bold text-gray-900">No events scheduled</h3>
           <p className="text-xs text-gray-400 mt-1">Check back later for updates on the schedule.</p>
         </div>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-9">
           {days.map((dayNum) => {
             const dayEvents = daysData[dayNum] || [];
 
@@ -76,24 +92,24 @@ export default function FestivalPage() {
                 </div>
 
                 {/* Day Events Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4">
+                <div className="grid grid-cols-1 gap-4 pl-2 md:grid-cols-2">
                   {dayEvents.map((event) => (
                     <div
                       key={event._id}
                       onClick={() => navigate(`/events/${event._id}`)}
-                      className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex overflow-hidden cursor-pointer"
+                      className="group flex cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
                     >
                       {/* Event Poster thumbnail */}
                       <div className="w-28 sm:w-36 bg-slate-900 relative flex-shrink-0">
                         {event.poster_url ? (
                           <img
-                            src={`${BASE_URL}${event.poster_url}`}
+                            src={mediaUrl(event.poster_url)}
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 to-slate-950 text-white">
-                            <span className="text-xl">📢</span>
+                            <span className="text-xs font-medium">No poster</span>
                           </div>
                         )}
                         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[8px] font-bold bg-white text-gray-800 shadow">
@@ -107,17 +123,17 @@ export default function FestivalPage() {
                           <h3 className="text-xs font-bold text-gray-900 group-hover:text-purple-600 transition-colors leading-snug line-clamp-2">
                             {event.title}
                           </h3>
-                          <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
-                            🏢 {event.department_id?.name || "All Departments"}
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                            {event.department_id?.name || "All Departments"}
                           </p>
                           <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
                             {event.description || "No description provided."}
                           </p>
                         </div>
 
-                        <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono mt-4 pt-2 border-t border-gray-50">
-                          <span>⏰ {formatTime12h(event.start_time)}</span>
-                          <span>📍 {event.venue}</span>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2 text-[11px] text-gray-500">
+                          <span>{formatTime12h(event.start_time)}</span>
+                          <span className="text-right">{event.venue}</span>
                         </div>
                       </div>
                     </div>

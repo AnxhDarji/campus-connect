@@ -4,8 +4,8 @@ import { getEventRequest, getPublishedEvents, toggleBookmark, getBookmarks, getE
 import { formatTime12h } from "../../utils/timeFormatter";
 import { audienceLabel } from "../../utils/charusatData";
 import { useAuth } from "../../context/AuthContext";
-
-const BASE_URL = "http://localhost:5001";
+import { mediaUrl } from "../../utils/mediaUrl";
+import LoadingState from "../../components/LoadingState";
 
 const LIFECYCLE_COLORS = {
   UPCOMING: "bg-sky-100 text-sky-700",
@@ -22,28 +22,65 @@ export default function EventDetailsPage() {
   const [completionData, setCompletionData] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [bookmarkError, setBookmarkError] = useState("");
+  const [similarError, setSimilarError] = useState("");
+  const [completionError, setCompletionError] = useState("");
+  const [loadedRequestKey, setLoadedRequestKey] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [toast, setToast] = useState(null);
+  const requestKey = `${id}:${reloadKey}`;
+  const loading = loadedRequestKey !== requestKey;
 
   useEffect(() => {
-    setLoading(true);
+    let current = true;
     getEventRequest(id)
       .then((res) => {
+        if (!current) return;
         const eventData = res.data.data;
         setData(eventData);
+        setPageError("");
         getPublishedEvents({ category: eventData.category, limit: 4 })
           .then((simRes) => {
-            setSimilar((simRes.data.data || []).filter(e => e._id !== id).slice(0, 3));
+            if (current) {
+              setSimilar((simRes.data.data || []).filter(e => e._id !== id).slice(0, 3));
+              setSimilarError("");
+            }
           })
-          .catch(() => { });
+          .catch((err) => {
+            if (current) setSimilarError(err.response?.data?.message || "Similar events could not be loaded.");
+          });
         // Fetch completion data (works for owner + admin; silently ignored for others)
-        getEventCompletion(id).then((r) => setCompletionData(r.data.data)).catch(() => { });
+        getEventCompletion(id)
+          .then((r) => {
+            if (current) {
+              setCompletionData(r.data.data);
+              setCompletionError("");
+            }
+          })
+          .catch((err) => {
+            if (current && err.response?.status !== 403) {
+              setCompletionError(err.response?.data?.message || "Completion details could not be loaded.");
+            }
+          });
       })
-      .catch(() => navigate("/events"))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (current) setPageError(err.response?.data?.message || "Unable to load this event. Please try again.");
+      })
+      .finally(() => { if (current) setLoadedRequestKey(requestKey); });
 
-    getBookmarks().then((r) => setBookmarks((r.data.data || []).map(b => b._id))).catch(() => { });
-  }, [id, navigate]);
+    getBookmarks()
+      .then((r) => {
+        if (current) {
+          setBookmarks((r.data.data || []).map(b => b._id));
+          setBookmarkError("");
+        }
+      })
+      .catch((err) => {
+        if (current) setBookmarkError(err.response?.data?.message || "Bookmark status could not be loaded.");
+      });
+    return () => { current = false; };
+  }, [id, requestKey]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -65,12 +102,26 @@ export default function EventDetailsPage() {
     }
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    showToast("Event link copied to clipboard!");
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      showToast("Event link copied to clipboard.");
+    } catch {
+      showToast("Unable to copy the event link.");
+    }
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">Loading details...</div>;
+  if (loading) return <LoadingState message="Loading event details..." />;
+  if (pageError) return (
+    <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center" role="alert">
+      <h1 className="text-base font-semibold text-red-800">Event unavailable</h1>
+      <p className="mt-2 text-sm text-red-700">{pageError}</p>
+      <div className="mt-4 flex justify-center gap-2">
+        <button type="button" onClick={() => navigate("/events")} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-white">Back to events</button>
+        <button type="button" onClick={() => { setPageError(""); setReloadKey((key) => key + 1); }} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">Try again</button>
+      </div>
+    </div>
+  );
   if (!data) return null;
 
   const isBookmarked = bookmarks.includes(data._id);
@@ -91,14 +142,15 @@ export default function EventDetailsPage() {
           {toast}
         </div>
       )}
+      {bookmarkError && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{bookmarkError}</p>}
 
       {/* Back navigation */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition cursor-pointer"
         >
-          ← Back to Events
+          Back to events
         </button>
         <div className="flex gap-2">
           <button
@@ -126,19 +178,18 @@ export default function EventDetailsPage() {
       </div>
 
       {/* Main Grid View */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
 
         {/* Left column - main content */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* Main Card: Image / Title */}
-          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="relative aspect-video bg-slate-900">
               {data.poster_url ? (
-                <img src={`${BASE_URL}${data.poster_url}`} alt={data.title} className="w-full h-full object-contain" />
+                <img src={mediaUrl(data.poster_url)} alt={data.title} className="w-full h-full object-contain" />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-950 to-slate-900 text-white">
-                  <span className="text-5xl mb-2">📢</span>
                   <span className="text-xs uppercase font-mono tracking-widest text-indigo-300">Poster Coming Soon</span>
                 </div>
               )}
@@ -154,13 +205,13 @@ export default function EventDetailsPage() {
               </div>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-4">
+            <div className="space-y-4 p-5 sm:p-7">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                   {data.title}
                 </h1>
-                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest mt-2">
-                  🏢 {data.department_id?.name || "All Departments"} {data.club_name && `· 🎭 ${data.club_name}`}
+                <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-blue-600">
+                  {data.department_id?.name || "All Departments"} {data.club_name && `· ${data.club_name}`}
                 </p>
                 {lifecycle && (
                   <span className={`inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full ${LIFECYCLE_COLORS[lifecycle] || "bg-gray-100 text-gray-500"}`}>
@@ -189,8 +240,8 @@ export default function EventDetailsPage() {
                     : audienceLabel(aud);
                   if (!label) return null;
                   return (
-                    <span key={i} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
-                      👥 {aud.audience_type === "OTHER" ? `Other → ${label}` : label}
+                    <span key={i} className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                      {aud.audience_type === "OTHER" ? `Other: ${label}` : label}
                     </span>
                   );
                 })}
@@ -211,17 +262,18 @@ export default function EventDetailsPage() {
                   >
                     <div className="aspect-[16/10] bg-slate-900 relative">
                       {e.poster_url ? (
-                        <img src={`${BASE_URL}${e.poster_url}`} alt={e.title} className="w-full h-full object-cover" />
+                        <img src={mediaUrl(e.poster_url)} alt={e.title} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl bg-gradient-to-br from-indigo-950 to-slate-900 text-white">📢</div>
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-950 to-slate-900 text-xs font-medium text-indigo-200">No poster</div>
                       )}
+                      {similarError && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{similarError}</p>}
                     </div>
                     <div className="p-3 flex-1 flex flex-col justify-between">
                       <h4 className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
                         {e.title}
                       </h4>
                       <p className="text-[10px] text-gray-400 mt-2">
-                        📅 {new Date(e.start_date).toLocaleDateString()}
+                        {new Date(e.start_date).toLocaleDateString()}
                       </p>
                     </div>
                   </Link>
@@ -232,9 +284,8 @@ export default function EventDetailsPage() {
 
           {/* ── EVENT COMPLETION SECTION (owner only, after event ends) ── */}
           {isOwner && lifecycle === "AWAITING_COMPLETION" && (
-            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 space-y-3">
+            <div className="space-y-3 rounded-2xl border border-orange-200 bg-orange-50 p-5">
               <div className="flex items-center gap-2">
-                <span className="text-orange-500 text-lg">⏳</span>
                 <h3 className="text-sm font-bold text-orange-800">Event Completion Required</h3>
               </div>
               <p className="text-xs text-orange-700">Your event has ended. Please submit the completion details so an AI report can be generated.</p>
@@ -242,7 +293,7 @@ export default function EventDetailsPage() {
                 onClick={() => navigate(`/events/${id}/complete`)}
                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg transition"
               >
-                Complete Event →
+                Complete event
               </button>
             </div>
           )}
@@ -262,6 +313,7 @@ export default function EventDetailsPage() {
                     <p className="text-gray-700 whitespace-pre-wrap">{completion.key_highlights}</p>
                   </div>
                 )}
+                {completionError && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{completionError}</p>}
                 {completion.winners_achievements && (
                   <div className="col-span-2">
                     <p className="text-[10px] text-gray-400 uppercase font-medium">Winners / Achievements</p>
@@ -281,16 +333,23 @@ export default function EventDetailsPage() {
                   </div>
                 )}
               </div>
-              {completion.photos?.length > 0 && (
+              {(completion.post_event_image_url || completion.photos?.length > 0) && (
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Event Photos</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {completion.photos.map((url, i) => (
-                      <a key={i} href={`${BASE_URL}${url}`} target="_blank" rel="noreferrer">
-                        <img src={`${BASE_URL}${url}`} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
-                      </a>
-                    ))}
-                  </div>
+                  <p className="text-[10px] text-gray-400 uppercase font-medium mb-2">Post-Event Image</p>
+                  {completion.post_event_image_url && (
+                    <a href={mediaUrl(completion.post_event_image_url)} target="_blank" rel="noreferrer">
+                      <img src={mediaUrl(completion.post_event_image_url)} alt={`Post-event image for ${data.title}`} className="mb-2 max-h-64 max-w-48 rounded-lg border border-gray-100 object-contain" />
+                    </a>
+                  )}
+                  {completion.photos?.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {completion.photos.map((url, i) => (
+                        <a key={i} href={mediaUrl(url)} target="_blank" rel="noreferrer">
+                          <img src={mediaUrl(url)} alt={`photo-${i}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100 hover:opacity-90 transition" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -301,7 +360,7 @@ export default function EventDetailsPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-50 pb-2">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Event Report</h3>
-                {report.generation_status === "GENERATED" && <span className="text-xs text-green-600 font-semibold">Generated ✓</span>}
+                {report.generation_status === "GENERATED" && <span className="text-xs font-semibold text-green-700">Generated</span>}
                 {report.generation_status === "GENERATING" && <span className="text-xs text-amber-500 font-semibold animate-pulse">Generating...</span>}
                 {report.generation_status === "FAILED" && <span className="text-xs text-red-500 font-semibold">Failed</span>}
               </div>
@@ -331,7 +390,7 @@ export default function EventDetailsPage() {
                 <p className="text-xs text-gray-400">The AI report is being generated...</p>
               )}
               {report.generation_status === "FAILED" && isOwner && (
-                <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs text-blue-600 hover:underline">Go to report page to retry →</button>
+                <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs text-blue-600 hover:underline">Go to report page to retry</button>
               )}
             </div>
           )}
@@ -339,7 +398,7 @@ export default function EventDetailsPage() {
           {/* Owner quick-link to full report page */}
           {isOwner && lifecycle === "COMPLETED" && (
             <div className="flex justify-end">
-              <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs text-blue-600 hover:underline font-medium">View full report page →</button>
+              <button onClick={() => navigate(`/events/${id}/report`)} className="text-xs font-medium text-blue-600 hover:underline">View full report</button>
             </div>
           )}
         </div>
@@ -348,12 +407,11 @@ export default function EventDetailsPage() {
         <div className="space-y-6">
 
           {/* Scheduling & Venue Card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
+          <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Event Schedule & Location</h3>
 
             <div className="space-y-4 text-xs">
               <div className="flex gap-3">
-                <span className="text-xl">📅</span>
                 <div>
                   <p className="font-semibold text-gray-900">Date Range</p>
                   <p className="text-gray-500 mt-0.5">
@@ -363,7 +421,6 @@ export default function EventDetailsPage() {
               </div>
 
               <div className="flex gap-3">
-                <span className="text-xl">⏰</span>
                 <div>
                   <p className="font-semibold text-gray-900">Timing</p>
                   <p className="text-gray-500 mt-0.5">{formatTime12h(data.start_time)} – {formatTime12h(data.end_time)}</p>
@@ -371,7 +428,6 @@ export default function EventDetailsPage() {
               </div>
 
               <div className="flex gap-3">
-                <span className="text-xl">📍</span>
                 <div>
                   <p className="font-semibold text-gray-900">Venue</p>
                   <p className="text-gray-500 mt-0.5">
@@ -384,7 +440,7 @@ export default function EventDetailsPage() {
                       rel="noreferrer"
                       className="inline-block mt-1 text-[10px] text-blue-600 hover:underline"
                     >
-                      🗺️ View on Google Maps
+                      View on Google Maps
                     </a>
                   )}
                 </div>
@@ -400,13 +456,13 @@ export default function EventDetailsPage() {
               <div className="space-y-4">
                 {data.registration_deadline && (
                   <p className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">
-                    ⏳ Deadline: {new Date(data.registration_deadline).toLocaleDateString()}
+                    Registration deadline: {new Date(data.registration_deadline).toLocaleDateString()}
                   </p>
                 )}
 
                 {data.qr_code_url && (
                   <div className="mx-auto w-32 h-32 p-1 border border-gray-100 rounded-xl bg-white shadow-inner flex items-center justify-center">
-                    <img src={`${BASE_URL}${data.qr_code_url}`} alt="Registration QR Code" className="w-full h-full object-contain" />
+                    <img src={mediaUrl(data.qr_code_url)} alt="Registration QR Code" className="w-full h-full object-contain" />
                   </div>
                 )}
 
@@ -427,18 +483,18 @@ export default function EventDetailsPage() {
               </div>
             ) : (
               <div className="py-4 text-xs text-gray-500 font-medium">
-                👐 Open to all! No registration required.
+                Open to all. No registration required.
               </div>
             )}
 
             {data.brochure_url && (
               <a
-                href={`${BASE_URL}${data.brochure_url}`}
+                href={mediaUrl(data.brochure_url)}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold border border-gray-100 transition-all text-center block cursor-pointer"
               >
-                📄 Download Brochure PDF
+                Download brochure PDF
               </a>
             )}
           </div>
@@ -474,19 +530,19 @@ export default function EventDetailsPage() {
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 pb-2">Social Connects</h3>
               <div className="flex flex-wrap gap-2 justify-center pt-1">
                 {data.website_url && (
-                  <a href={data.website_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/50 flex items-center justify-center text-sm shadow-sm transition" title="Website">🌐</a>
+                  <a href={data.website_url} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100" title="Website">Website</a>
                 )}
                 {data.instagram_url && (
-                  <a href={data.instagram_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/50 flex items-center justify-center text-sm shadow-sm transition" title="Instagram">📸</a>
+                  <a href={data.instagram_url} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100" title="Instagram">Instagram</a>
                 )}
                 {data.linkedin_url && (
-                  <a href={data.linkedin_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/50 flex items-center justify-center text-sm shadow-sm transition" title="LinkedIn">💼</a>
+                  <a href={data.linkedin_url} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100" title="LinkedIn">LinkedIn</a>
                 )}
                 {data.facebook_url && (
-                  <a href={data.facebook_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/50 flex items-center justify-center text-sm shadow-sm transition" title="Facebook">👥</a>
+                  <a href={data.facebook_url} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100" title="Facebook">Facebook</a>
                 )}
                 {data.whatsapp_url && (
-                  <a href={data.whatsapp_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/50 flex items-center justify-center text-sm shadow-sm transition" title="WhatsApp">💬</a>
+                  <a href={data.whatsapp_url} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100" title="WhatsApp">WhatsApp</a>
                 )}
               </div>
             </div>

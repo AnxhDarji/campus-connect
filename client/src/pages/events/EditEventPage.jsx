@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getEventRequest, updateEventRequest,
-  uploadPoster, uploadQR, uploadBrochure, getDepartments,
+  generateAnnouncementPoster, uploadPoster, uploadQR, uploadBrochure, getDepartments,
 } from "../../services/eventService";
 import {
   validateEventForm, validatePhone, validateEmail, validateOrgEmail,
@@ -12,11 +12,13 @@ import FormSection from "../../components/FormSection";
 import FileUploadField from "../../components/FileUploadField";
 import Button from "../../components/Button";
 import AudienceSelector from "../../components/AudienceSelector";
+import EventImageSelector from "../../components/EventImageSelector";
+import LoadingState from "../../components/LoadingState";
 
 const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports", "Cultural", "Competition", "Placement", "Festival", "Other"];
 const REQUESTER_ROLES = ["Event Manager", "Club Representative", "Volunteer Lead", "Media Team Member", "Faculty Coordinator", "Student Coordinator", "Department Representative", "External College Representative", "Student", "Other"];
 const ORG_TYPES = ["Department", "Student Club", "College Committee", "Faculty", "External College", "Student Group", "Other"];
-const SECTIONS = ["Requester Info", "Basic Info", "Description", "Schedule", "Venue", "Registration", "Links", "Audience"];
+const SECTIONS = ["Requester Info", "Basic Info", "Description", "Schedule", "Venue", "Registration", "Links", "Audience", "Announcement Image"];
 
 export default function EditEventPage() {
   const { id } = useParams();
@@ -27,8 +29,11 @@ export default function EditEventPage() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    setLoadError("");
     Promise.all([getEventRequest(id), getDepartments()])
       .then(([evRes, deptRes]) => {
         const d = evRes.data.data;
@@ -64,8 +69,8 @@ export default function EditEventPage() {
         });
         setDepartments(deptRes.data.data || []);
       })
-      .catch(() => navigate("/events/my"));
-  }, [id]);
+      .catch((err) => setLoadError(err.response?.data?.message || "Unable to load this request for editing. Please try again."));
+  }, [id, navigate, reloadKey]);
 
   const set = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -109,7 +114,7 @@ export default function EditEventPage() {
     setForm((prev) => { inlineValidate(field, prev[field], prev); return prev; });
   }, [inlineValidate]);
 
-  const inputCls = "w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition";
+  const inputCls = "w-full px-3 py-2 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition";
   const labelCls = "text-xs font-medium text-gray-600 uppercase tracking-wide";
 
   const field = (name, label, type = "text", extra = {}) => (
@@ -129,7 +134,7 @@ export default function EditEventPage() {
     <div className="flex flex-col gap-1">
       <label className={labelCls}>{label}</label>
       <select value={form[name]} onChange={(e) => handleChange(name, e.target.value)}
-        className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        className="w-full px-3 py-2 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         <option value="">Select {label}</option>
         {options.map((o) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
       </select>
@@ -150,6 +155,7 @@ export default function EditEventPage() {
         ["registration_link", "registration_deadline"],
         ["website_url", "instagram_url", "linkedin_url", "facebook_url", "whatsapp_url"],
         [],
+        [],
       ].findIndex((fields) => fields.some((f) => errs[f]));
       if (firstErrStep !== -1) setStep(firstErrStep);
       setServerError("Please fix the errors below before saving.");
@@ -167,7 +173,17 @@ export default function EditEventPage() {
     }
   };
 
-  if (!form) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">Loading...</div>;
+  if (!form && loadError) return (
+    <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center" role="alert">
+      <h1 className="text-base font-semibold text-red-800">Request could not be loaded</h1>
+      <p className="mt-2 text-sm text-red-700">{loadError}</p>
+      <div className="mt-4 flex justify-center gap-2">
+        <button type="button" onClick={() => navigate("/events/my")} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-white">Back to requests</button>
+        <button type="button" onClick={() => { setLoadError(""); setReloadKey((key) => key + 1); }} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">Try again</button>
+      </div>
+    </div>
+  );
+  if (!form) return <LoadingState message="Loading request..." />;
 
   const sections = [
     <FormSection title="Requester Information" key="requester">
@@ -198,15 +214,11 @@ export default function EditEventPage() {
         <textarea
           value={form.description}
           onChange={(e) => handleChange("description", e.target.value)}
-          rows={4}
+          rows={3}
           placeholder="Describe the event... (min 50 words without poster, 20 words with poster)"
           className="w-full px-3.5 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
-      </div>
-      <div className="sm:col-span-2">
-        <FileUploadField label="Event Poster" accept=".jpg,.jpeg,.png,.webp" maxMB={10}
-          uploadFn={uploadPoster} preview={form.poster_url} onUpload={(url) => set("poster_url", url)} note="JPG, JPEG, PNG, WEBP · max 10MB" />
       </div>
     </FormSection>,
 
@@ -263,25 +275,49 @@ export default function EditEventPage() {
         />
       </div>
     </FormSection>,
+    <FormSection title="Announcement Image" key="announcement-image">
+      <div className="sm:col-span-2">
+        <EventImageSelector
+          label="Event announcement image"
+          value={form.poster_url}
+          onChange={(url) => set("poster_url", url)}
+          uploadFn={uploadPoster}
+          generateFn={() => {
+            const department = departments.find((item) => item._id === form.department_id);
+            return generateAnnouncementPoster({
+              title: form.title,
+              category: form.category,
+              description: form.description,
+              start_date: form.start_date,
+              start_time: form.start_time,
+              venue: form.venue,
+              department: department?.name || "",
+              requester_name: form.requester_name,
+              organization_name: form.organization_name,
+            });
+          }}
+        />
+      </div>
+    </FormSection>,
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <button onClick={() => navigate("/events/my")} className="text-xs text-gray-400 hover:text-gray-600 mb-3 flex items-center gap-1">
-          ← My Requests
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-6 sm:py-8">
+        <button onClick={() => navigate("/events/my")} className="mb-3 text-xs text-gray-500 transition hover:text-gray-800">
+          Back to requests
         </button>
         <h1 className="text-xl font-bold text-gray-900">Edit Event Request</h1>
 
-        <div className="flex gap-1 my-6">
+        <div className="my-4 flex gap-1.5" aria-label="Edit request sections">
           {SECTIONS.map((s, i) => (
-            <button key={s} onClick={() => setStep(i)} title={s}
-              className={`flex-1 h-1.5 rounded-full transition-colors ${i <= step ? "bg-blue-500" : "bg-gray-200"}`} />
+            <button key={s} onClick={() => setStep(i)} title={s} aria-label={`Section ${i + 1}: ${s}`} aria-current={step === i ? "step" : undefined}
+              className={`h-1.5 flex-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${i <= step ? "bg-blue-500" : "bg-gray-200"}`} />
           ))}
         </div>
-        <p className="text-xs text-gray-500 mb-4 font-medium">{step + 1} / {SECTIONS.length} — {SECTIONS[step]}</p>
+        <p className="mb-3 text-xs font-medium text-gray-500">Section {step + 1} of {SECTIONS.length}: {SECTIONS[step]}</p>
 
-        <div className="min-h-[480px]">{sections[step]}</div>
+        <div className="flex-1">{sections[step]}</div>
 
         {serverError && (
           <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
@@ -289,20 +325,20 @@ export default function EditEventPage() {
           </div>
         )}
 
-        <div className="flex gap-3 mt-6">
+        <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-[var(--cc-bg)] sm:mx-0 sm:mt-auto sm:border-0 sm:px-0 sm:py-0">
           {step > 0 && (
-            <button onClick={() => setStep((s) => s - 1)}
-              className="flex-1 py-2.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+            <button type="button" onClick={() => setStep((s) => s - 1)}
+              className="min-h-10 min-w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
               Back
             </button>
           )}
           {step < SECTIONS.length - 1 ? (
-            <button onClick={() => setStep((s) => s + 1)}
-              className="flex-1 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+            <button type="button" onClick={() => setStep((s) => s + 1)}
+              className="ml-auto min-h-10 min-w-28 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700">
               Next
             </button>
           ) : (
-            <Button loading={submitting} onClick={handleSubmit}>
+            <Button className="ml-auto min-h-10 min-w-28" loading={submitting} onClick={handleSubmit}>
               {submitting ? "Saving..." : "Save Changes"}
             </Button>
           )}

@@ -18,6 +18,8 @@ const eventCompletionSchema = new mongoose.Schema(
     winners_achievements: { type: String, trim: true, default: null },
     special_guests: { type: String, trim: true, default: null },
     event_outcomes: { type: String, trim: true, default: null },
+    post_event_image_url: { type: String, default: null },
+    post_to_instagram: { type: Boolean, default: undefined },
     photos: { type: [String], default: [] }, // array of /uploads/events/... paths
     submitted_by: {
       type: mongoose.Schema.Types.ObjectId,

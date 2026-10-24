@@ -11,12 +11,14 @@ import {
   toggleBookmark,
   myBookmarks,
   getFestivalEvents,
+  generateAnnouncementPoster,
 } from "../controllers/eventRequest.controller.js";
 import {
   getCompletion,
   submitCompletion,
   retryReportGeneration,
   generatePoster,
+  generatePostEventImage,
   regeneratePoster1,
   regeneratePoster2,
   approvePoster,
@@ -34,6 +36,7 @@ const photosUpload = (req, res, next) => {
 };
 
 // Static routes first
+router.post("/poster/generate", ...guard, generateAnnouncementPoster);
 router.post("/", ...guard, validateEventRequest, createEventRequest);
 router.get("/", ...guard, listPublishedEvents);
 router.get("/my", ...guard, getMyRequests);
@@ -43,6 +46,7 @@ router.get("/festivals/:name", ...guard, getFestivalEvents);
 // Completion sub-routes (must be before /:id to avoid conflict)
 router.get("/:id/completion", ...guard, getCompletion);
 router.post("/:id/completion", ...guard, photosUpload, submitCompletion);
+router.post("/:id/completion/generate-image", ...guard, generatePostEventImage);
 router.post("/:id/completion/report/retry", ...guard, retryReportGeneration);
 router.post("/:id/completion/generate-poster", ...guard, generatePoster);
 router.post("/:id/completion/regenerate-poster1", ...guard, regeneratePoster1);
