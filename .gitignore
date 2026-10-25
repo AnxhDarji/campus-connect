@@ -12,6 +12,7 @@ dist/
 uploads/
 server/uploads/
 *.png
+!client/public/CampusConnect_logo.png
 *.jpg
 *.jpeg
 *.webp
