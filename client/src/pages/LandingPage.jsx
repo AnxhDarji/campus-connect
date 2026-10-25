@@ -151,25 +151,63 @@ export default function LandingPage() {
         </section>
 
         {/* ── Footer ─────────────────────────────────────────────── */}
-        <footer className="border-t border-[var(--cc-border)] bg-[var(--cc-surface)] px-6 py-10">
-          <div className="mx-auto max-w-4xl">
-            <p className="mb-6 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--cc-muted)]">
-              Built by the Team
-            </p>
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-              {TEAM.map(({ name, role }) => (
-                <div key={name} className="flex flex-col items-center gap-1.5 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2078C0]/10 text-sm font-bold text-[#2078C0]">
-                    {name.charAt(0)}
-                  </div>
-                  <p className="text-sm font-semibold text-[var(--cc-text)]">{name}</p>
-                  <p className="text-[11px] leading-4 text-[var(--cc-muted)]">{role}</p>
-                </div>
-              ))}
+        <footer className="border-t border-[var(--cc-border)] bg-[var(--cc-surface)] px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+              <Link to="/" aria-label="CampusConnect home" className="w-fit shrink-0">
+                <img
+                  src="/CampusConnect_logo.png"
+                  alt="CampusConnect"
+                  className="h-auto w-28 rounded-lg border border-[var(--cc-border)] bg-white shadow-sm sm:w-32"
+                />
+              </Link>
+
+              <div className="flex flex-col gap-6 sm:items-end">
+                <nav aria-label="Footer links" className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="#"
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--cc-muted)] transition hover:bg-[var(--cc-raised)] hover:text-[var(--cc-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-focus)]"
+                  >
+                    Terms
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--cc-muted)] transition hover:bg-[var(--cc-raised)] hover:text-[var(--cc-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-focus)]"
+                  >
+                    Privacy
+                  </a>
+                  <details className="group relative">
+                    <summary className="cursor-pointer list-none rounded-lg px-3 py-2 text-sm font-medium text-[var(--cc-muted)] transition hover:bg-[var(--cc-raised)] hover:text-[var(--cc-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-focus)] [&::-webkit-details-marker]:hidden">
+                      About
+                    </summary>
+                    <div className="absolute right-0 z-10 mt-2 w-[min(19rem,calc(100vw-2.5rem))] rounded-xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-4 shadow-xl">
+                      <p className="mb-3 text-xs leading-5 text-[var(--cc-muted)]">
+                        Meet the team behind CampusConnect.
+                      </p>
+                      <div className="space-y-3">
+                        {TEAM.map(({ name, role }) => (
+                          <div key={name}>
+                            <p className="text-sm font-semibold text-[var(--cc-text)]">{name}</p>
+                            <p className="text-xs leading-5 text-[var(--cc-muted)]">{role}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                </nav>
+                <Link
+                  to="/signup"
+                  className="w-fit rounded-lg bg-[#2078C0] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1a68a8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2078C0] focus-visible:ring-offset-2"
+                >
+                  Start today
+                </Link>
+              </div>
             </div>
-            <p className="mt-8 text-center text-[11px] text-[var(--cc-muted)]">
-              © {new Date().getFullYear()} CampusConnect · CHARUSAT
-            </p>
+            <div className="mt-8 border-t border-[var(--cc-border)] pt-5">
+              <p className="text-center text-[11px] text-[var(--cc-muted)]">
+                © {new Date().getFullYear()} CampusConnect · CHARUSAT
+              </p>
+            </div>
           </div>
         </footer>
       </main>
