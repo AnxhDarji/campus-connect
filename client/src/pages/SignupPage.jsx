@@ -110,23 +110,23 @@ export default function SignupPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-dvh bg-gray-50 px-5 py-8 text-gray-900 sm:px-8">
+      <main className="min-h-dvh bg-[var(--cc-bg)] px-5 py-8 text-[var(--cc-text)] sm:px-8">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between">
-        <Link to="/" className="text-base font-semibold tracking-tight text-gray-900">
-          CampusConnect
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src="/CampusConnect_logo.png" alt="CampusConnect" className="cc-brand-logo cc-brand-logo--auth" />
         </Link>
         <ThemePreference />
       </header>
 
       <section className="mx-auto w-full max-w-md py-10 sm:py-14">
         <div className="mb-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2078C0]">
             CHARUSAT account
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
+          <h1 className="font-heading mt-2 text-3xl font-bold tracking-tight text-[var(--cc-text)]">
             Create your account
           </h1>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
+          <p className="mt-2 text-sm leading-6 text-[var(--cc-muted)]">
             Use your institution email to get started with CampusConnect.
           </p>
         </div>
@@ -146,7 +146,7 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="signup-full-name" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="signup-full-name" className="mb-1.5 block text-sm font-medium text-[var(--cc-text)]">
               Full name
             </label>
             <input
@@ -159,18 +159,18 @@ export default function SignupPage() {
               onChange={handleChange}
               aria-invalid={Boolean(errors.fullName)}
               aria-describedby={errors.fullName ? 'signup-name-error' : undefined}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              className="h-11 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3.5 text-sm text-[var(--cc-text)] outline-none transition placeholder:text-[var(--cc-muted)] hover:border-[#2078C0]/50 focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10"
               required
             />
             {errors.fullName && (
-              <p id="signup-name-error" className="mt-1.5 text-xs text-red-600">
+              <p id="signup-name-error" className="mt-1.5 text-xs text-red-600 dark:text-red-400">
                 {errors.fullName}
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-[var(--cc-text)]">
               Institution email
             </label>
             <input
@@ -183,18 +183,18 @@ export default function SignupPage() {
               onChange={handleChange}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? 'signup-email-error' : undefined}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              className="h-11 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3.5 text-sm text-[var(--cc-text)] outline-none transition placeholder:text-[var(--cc-muted)] hover:border-[#2078C0]/50 focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10"
               required
             />
             {errors.email && (
-              <p id="signup-email-error" className="mt-1.5 text-xs text-red-600">
+              <p id="signup-email-error" className="mt-1.5 text-xs text-red-600 dark:text-red-400">
                 {errors.email}
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="signup-institution-id" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="signup-institution-id" className="mb-1.5 block text-sm font-medium text-[var(--cc-text)]">
               Institution ID
             </label>
             <input
@@ -204,12 +204,12 @@ export default function SignupPage() {
               value={form.institutionId}
               placeholder="Automatically filled from your email"
               readOnly
-              className="h-11 w-full rounded-lg border border-gray-300 bg-gray-100 px-3.5 text-sm text-gray-700 outline-none"
+              className="h-11 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-raised)] px-3.5 text-sm text-[var(--cc-muted)] outline-none cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-[var(--cc-text)]">
               Password
             </label>
             <input
@@ -223,11 +223,11 @@ export default function SignupPage() {
               onBlur={() => setPasswordFocused(false)}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'signup-password-error' : 'signup-password-rules'}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              className="h-11 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3.5 text-sm text-[var(--cc-text)] outline-none transition placeholder:text-[var(--cc-muted)] hover:border-[#2078C0]/50 focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10"
               required
             />
             {errors.password && (
-              <p id="signup-password-error" className="mt-1.5 text-xs text-red-600">
+              <p id="signup-password-error" className="mt-1.5 text-xs text-red-600 dark:text-red-400">
                 {errors.password}
               </p>
             )}
@@ -238,9 +238,10 @@ export default function SignupPage() {
                   return (
                     <li
                       key={rule.label}
-                      className={`text-xs ${passed ? 'text-green-700' : 'text-gray-500'}`}
+                      className={`text-xs flex items-center gap-1.5 ${passed ? 'text-[#48A090]' : 'text-[var(--cc-muted)]'}`}
                     >
-                      {rule.label}: {passed ? 'Met' : 'Not met'}
+                      <span aria-hidden="true">{passed ? '✓' : '·'}</span>
+                      {rule.label}
                     </li>
                   );
                 })}
@@ -255,15 +256,15 @@ export default function SignupPage() {
           </div>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-[var(--cc-muted)]">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-800">
+          <Link to="/login" className="font-semibold text-[#2078C0] hover:text-[#1a68a8]">
             Sign in
           </Link>
         </p>
         <Link
           to="/"
-          className="mt-5 block text-center text-sm text-gray-500 transition hover:text-gray-700"
+          className="mt-5 block text-center text-sm text-[var(--cc-muted)] transition hover:text-[#2078C0]"
         >
           Back to home
         </Link>

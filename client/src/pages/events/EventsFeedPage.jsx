@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getPublishedEvents, toggleBookmark, getBookmarks, getDepartments } from "../../services/eventService";
 import { mediaUrl } from "../../utils/mediaUrl";
 import LoadingState from "../../components/LoadingState";
+import { MagnifierIcon, BookmarkIcon, BookmarkOpenedIcon, ShareIcon } from "@solar-icons/react/linear";
+
 
 const CATEGORIES = ["Technical", "Non-Technical", "Workshop", "Seminar", "Sports", "Cultural", "Competition", "Placement", "Festival", "Other"];
 
@@ -137,30 +139,30 @@ export default function EventsFeedPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg font-medium animate-slide-in">
+        <div className="fixed bottom-4 right-4 z-50 bg-[#203860] text-white text-xs px-4 py-2.5 rounded-lg shadow-lg font-medium animate-slide-in">
           {toast}
         </div>
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-6">
+      <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-sm sm:flex-row sm:items-center sm:p-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Announcements & Events Feed</h1>
-          <p className="text-xs text-gray-400 mt-1">Discover, bookmark, and register for student and department events.</p>
+          <h1 className="font-heading text-xl font-bold text-[var(--cc-text)]">Announcements &amp; Events Feed</h1>
+          <p className="text-xs text-[var(--cc-muted)] mt-1">Discover, bookmark, and register for student and department events.</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => navigate("/events/my")}
-            className="rounded-lg border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+            className="rounded-lg border border-[var(--cc-border)] px-4 py-2.5 text-xs font-semibold text-[var(--cc-muted)] transition hover:bg-[var(--cc-raised)] hover:text-[var(--cc-text)] cursor-pointer"
           >
             My Event Requests
           </button>
           <button
             onClick={() => navigate("/events/create")}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="rounded-lg bg-[#2078C0] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1a68a8] cursor-pointer"
           >
             Create event request
           </button>
@@ -168,24 +170,26 @@ export default function EventsFeedPage() {
       </div>
 
       {/* Search & Filtering Block */}
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-4 shadow-sm sm:grid-cols-3">
         <div className="relative">
           <input
             type="text"
             placeholder="Search events by name..."
             value={search}
             onChange={(e) => { setFeedError(""); setPage(1); setSearch(e.target.value); }}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-raised)] py-2.5 pl-9 pr-3 text-sm text-[var(--cc-text)] placeholder:text-[var(--cc-muted)] focus:outline-none focus:border-[#2078C0] focus:ring-2 focus:ring-[#2078C0]/15"
           />
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="absolute left-3 top-3 h-4 w-4 text-gray-400">
-            <circle cx="11" cy="11" r="7" strokeWidth="1.8" />
-            <path d="m16 16 4 4" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
+          <MagnifierIcon
+            size={16}
+            strokeWidth={1.8}
+            aria-hidden="true"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--cc-muted)]"
+          />
         </div>
         <select
           value={category}
           onChange={(e) => { setFeedError(""); setPage(1); setCategory(e.target.value); }}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-[var(--cc-border)] bg-[var(--cc-raised)] px-3 py-2.5 text-sm text-[var(--cc-text)] focus:outline-none focus:border-[#2078C0] focus:ring-2 focus:ring-[#2078C0]/15"
         >
           <option value="">All Categories</option>
           {CATEGORIES.map((cat) => (
@@ -196,7 +200,7 @@ export default function EventsFeedPage() {
         <select
           value={department}
           onChange={(e) => { setFeedError(""); setPage(1); setDepartment(e.target.value); }}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-[var(--cc-border)] bg-[var(--cc-raised)] px-3 py-2.5 text-sm text-[var(--cc-text)] focus:outline-none focus:border-[#2078C0] focus:ring-2 focus:ring-[#2078C0]/15"
         >
           <option value="">All Departments</option>
           {departments.map((dept) => (
@@ -209,7 +213,7 @@ export default function EventsFeedPage() {
       ))}
 
       {/* Navigation Tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200 pb-px" role="tablist" aria-label="Event categories">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--cc-border)] pb-px" role="tablist" aria-label="Event categories">
         {[
           { label: "Upcoming", id: "upcoming" },
           { label: "Featured", id: "featured" },
@@ -223,8 +227,8 @@ export default function EventsFeedPage() {
             role="tab"
             aria-selected={activeTab === tab.id}
             className={`whitespace-nowrap px-4 py-2.5 text-xs font-semibold border-b-2 cursor-pointer transition-all duration-200 -mb-px ${activeTab === tab.id
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-400 hover:text-gray-600"
+              ? "border-[#2078C0] text-[#2078C0]"
+              : "border-transparent text-[var(--cc-muted)] hover:text-[var(--cc-text)]"
               }`}
           >
             {tab.label}
@@ -238,27 +242,27 @@ export default function EventsFeedPage() {
           <LoadingState message="Loading events..." size={32} className="min-h-0 py-3" />
           <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="animate-pulse space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="aspect-video w-full rounded-lg bg-gray-100" />
-                <div className="h-4 w-2/3 rounded bg-gray-100" />
-                <div className="h-3 w-1/2 rounded bg-gray-100" />
-                <div className="h-8 w-full rounded bg-gray-100" />
+              <div key={n} className="animate-pulse space-y-4 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-4">
+                <div className="aspect-video w-full rounded-lg bg-[var(--cc-raised)]" />
+                <div className="h-4 w-2/3 rounded bg-[var(--cc-raised)]" />
+                <div className="h-3 w-1/2 rounded bg-[var(--cc-raised)]" />
+                <div className="h-8 w-full rounded bg-[var(--cc-raised)]" />
               </div>
             ))}
           </div>
         </>
       ) : feedError ? (
-        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 dark:border-red-800/40 dark:bg-red-950/30 p-5 text-sm text-red-700 dark:text-red-400">
           <p className="font-semibold">Events could not be loaded</p>
           <p className="mt-1 text-xs">{feedError}</p>
-          <button type="button" onClick={() => { setFeedError(""); setReloadKey((key) => key + 1); }} className="mt-3 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold transition hover:bg-red-100">
+          <button type="button" onClick={() => { setFeedError(""); setReloadKey((key) => key + 1); }} className="mt-3 rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-xs font-semibold transition hover:bg-red-100 dark:hover:bg-red-900/40 cursor-pointer">
             Try again
           </button>
         </div>
       ) : events.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-          <h3 className="text-base font-bold text-gray-900">No events found</h3>
-          <p className="text-xs text-gray-400 mt-1">Try adjusting your filters or checking back later.</p>
+        <div className="text-center py-16 bg-[var(--cc-surface)] rounded-2xl border border-[var(--cc-border)] p-8 shadow-sm">
+          <h3 className="text-base font-bold text-[var(--cc-text)]">No events found</h3>
+          <p className="text-xs text-[var(--cc-muted)] mt-1">Try adjusting your filters or checking back later.</p>
         </div>
       ) : (
         <>
@@ -270,7 +274,7 @@ export default function EventsFeedPage() {
             return (
               <article
                 key={event._id}
-                className="cc-interactive-card group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-[transform,border-color,box-shadow] duration-200"
+                className="cc-interactive-card group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] shadow-sm transition-[transform,border-color,box-shadow] duration-200"
               >
                 <button
                   type="button"
@@ -282,7 +286,7 @@ export default function EventsFeedPage() {
                     navigate(`/events/${event._id}`);
                   }
                 }}
-                  className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700"
+                  className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2078C0]"
                 />
                 {/* Poster container */}
                 <div className="pointer-events-none relative z-10 aspect-[16/10] overflow-hidden bg-slate-900">
@@ -321,22 +325,21 @@ export default function EventsFeedPage() {
                       aria-label={isBookmarked ? `Remove ${event.title} from bookmarks` : `Bookmark ${event.title}`}
                       aria-pressed={isBookmarked}
                       className={`pointer-events-auto p-1.5 rounded-full backdrop-blur-sm transition cursor-pointer ${isBookmarked
-                        ? "bg-blue-600 text-white shadow"
+                        ? "bg-[#2078C0] text-white shadow"
                         : "bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700 shadow-sm"
                         }`}
                     >
-                      <svg className="w-3.5 h-3.5" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
+                      {isBookmarked
+                        ? <BookmarkOpenedIcon size={14} strokeWidth={2} aria-hidden="true" />
+                        : <BookmarkIcon size={14} strokeWidth={2} aria-hidden="true" />
+                      }
                     </button>
                     <button
                       onClick={(e) => handleShare(e, event._id)}
                       aria-label={`Share ${event.title}`}
                       className="pointer-events-auto p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700 shadow-sm backdrop-blur-sm transition cursor-pointer"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8.684 10.742l4.636-2.318m0 0a3 3 0 100-4.184m0 4.184a3 3 0 010-4.184m-4.636 6.502a3 3 0 11-4.636-4.185m4.636 4.185l4.636 2.318m0 0a3 3 0 100 4.184m0-4.184a3 3 0 010 4.184" />
-                      </svg>
+                      <ShareIcon size={14} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -344,19 +347,19 @@ export default function EventsFeedPage() {
                 {/* Info Container */}
                 <div className="pointer-events-none relative z-10 flex flex-1 flex-col justify-between p-5">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
+                    <h3 className="text-sm font-bold text-[var(--cc-text)] leading-snug group-hover:text-[#2078C0] transition-colors line-clamp-2">
                       {event.title}
                     </h3>
-                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--cc-muted)]">
                       {event.department_id?.name || "All Departments"}
                     </p>
-                    <p className="text-xs text-gray-500 mt-2 line-clamp-3">
+                    <p className="text-xs text-[var(--cc-muted)] mt-2 line-clamp-3">
                       {event.description || "No description provided."}
                     </p>
                   </div>
 
-                  <div className="mt-4 space-y-3 border-t border-gray-100 pt-3">
-                    <div className="flex flex-wrap justify-between gap-1 text-[11px] text-gray-500">
+                  <div className="mt-4 space-y-3 border-t border-[var(--cc-border)] pt-3">
+                    <div className="flex flex-wrap justify-between gap-1 text-[11px] text-[var(--cc-muted)]">
                       <span>{new Date(event.start_date).toLocaleDateString()}</span>
                       <span className="text-right">{event.venue}</span>
                     </div>
@@ -365,7 +368,7 @@ export default function EventsFeedPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/festivals/${event.admin_metadata.festival_name}`)}
-                        className="pointer-events-auto block w-full rounded-lg bg-indigo-600 py-2.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                        className="pointer-events-auto block w-full rounded-lg bg-indigo-600 py-2.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 cursor-pointer"
                       >
                         View festival schedule
                       </button>
@@ -374,12 +377,12 @@ export default function EventsFeedPage() {
                         href={event.registration_link}
                         target="_blank"
                         rel="noreferrer"
-                        className="pointer-events-auto block w-full rounded-lg bg-blue-600 py-2.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                        className="pointer-events-auto block w-full rounded-lg bg-[#2078C0] py-2.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-[#1a68a8]"
                       >
                         Register Now
                       </a>
                     ) : (
-                      <div className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 text-center text-xs font-semibold text-gray-600">
+                      <div className="w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-raised)] py-2.5 text-center text-xs font-semibold text-[var(--cc-muted)]">
                         Free Entry / No Registration
                       </div>
                     )}
@@ -390,21 +393,21 @@ export default function EventsFeedPage() {
           })}
           </div>
           {!loading && !feedError && activeTab !== "bookmarks" && pages > 1 && (
-            <nav aria-label="Event feed pages" className="flex items-center justify-between border-t border-gray-200 pt-4">
+            <nav aria-label="Event feed pages" className="flex items-center justify-between border-t border-[var(--cc-border)] pt-4">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page <= 1}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[var(--cc-border)] px-3 py-2 text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--cc-raised)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 Previous
               </button>
-              <p aria-live="polite" className="text-sm text-gray-500">Page {page} of {pages}</p>
+              <p aria-live="polite" className="text-sm text-[var(--cc-muted)]">Page {page} of {pages}</p>
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.min(pages, current + 1))}
                 disabled={page >= pages}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[var(--cc-border)] px-3 py-2 text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--cc-raised)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 Next
               </button>

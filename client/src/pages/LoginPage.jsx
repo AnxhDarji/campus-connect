@@ -4,6 +4,7 @@ import { login } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import ThemePreference from '../components/ThemePreference';
 import PageTransition from '../components/PageTransition';
+import { EyeIcon, EyeClosedIcon } from '@solar-icons/react/linear';
 
 const ADMIN_ROLES = ['Super Admin', 'Dept Admin', 'Admin'];
 
@@ -88,8 +89,8 @@ export default function LoginPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-dvh bg-slate-50 lg:grid lg:grid-cols-2">
-      <section className="relative flex min-h-[230px] flex-col justify-between overflow-hidden bg-[var(--cc-navy)] px-6 py-7 text-white sm:px-10 sm:py-9 lg:min-h-dvh lg:px-14 lg:py-12 xl:px-20">
+      <main className="min-h-dvh bg-[var(--cc-bg)] lg:grid lg:grid-cols-2">
+      <section className="relative flex min-h-[230px] flex-col justify-between overflow-hidden bg-[#203860] px-6 py-7 text-white sm:px-10 sm:py-9 lg:min-h-dvh lg:px-14 lg:py-12 xl:px-20">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-28 -top-32 h-96 w-96 rounded-full border border-white/[0.07]"
@@ -98,34 +99,30 @@ export default function LoginPage() {
           aria-hidden="true"
           className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full border border-white/[0.07]"
         />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#2078C0]/20 blur-3xl"
+        />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="cc-login-brand-mark flex h-10 w-10 items-center justify-center rounded-lg text-base font-bold">
-            C
-          </div>
-          <div>
-            <p className="text-sm font-semibold tracking-wide">CampusConnect</p>
-            <p className="mt-0.5 text-[10px] font-medium tracking-[0.16em] text-white/55">
-              CHARUSAT
-            </p>
-          </div>
+          <img src="/CampusConnect_logo.png" alt="CampusConnect" className="cc-brand-logo cc-brand-logo--auth" />
         </div>
 
         <div className="relative z-10 hidden max-w-lg py-12 lg:block">
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-blue-200/75">
             CHARUSAT campus portal
           </p>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight xl:text-5xl">
+          <h1 className="font-heading !text-[#F7F9FC] text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
             Your campus,
             <br />
             connected.
           </h1>
-          <p className="mt-5 max-w-md text-sm leading-6 text-slate-300/75">
+          <p className="mt-5 max-w-md text-sm leading-6 text-slate-300/80">
             Sign in to stay up to date with campus events and manage your
             university activities in one place.
           </p>
         </div>
 
-        <p className="relative z-10 hidden text-xs text-white/45 lg:block">
+        <p className="relative z-10 hidden text-xs text-white/40 lg:block">
           CHARUSAT University, Anand, Gujarat
         </p>
       </section>
@@ -136,25 +133,25 @@ export default function LoginPage() {
         </div>
         <div className="w-full max-w-[420px]">
           <div className="mb-8">
-            <p className="mb-2 text-sm font-semibold text-blue-700 lg:hidden">
+            <p className="mb-2 text-sm font-semibold text-[#2078C0] lg:hidden">
               CHARUSAT CampusConnect
             </p>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2078C0]">
               Sign in
             </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+            <h2 className="font-heading mt-2 text-3xl font-bold tracking-tight text-[var(--cc-text)]">
               Welcome back
             </h2>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-[var(--cc-muted)]">
               Sign in to CampusConnect with your university account.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div>
               <label
                 htmlFor="login-identifier"
-                className="mb-2 block text-sm font-medium text-slate-700"
+                className="mb-2 block text-sm font-medium text-[var(--cc-text)]"
               >
                 Institution email or ID
               </label>
@@ -168,7 +165,7 @@ export default function LoginPage() {
                 onChange={handleChange}
                 aria-invalid={Boolean(error && !form.identifier.trim())}
                 aria-describedby="login-identifier-help"
-                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                className="h-12 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3.5 text-sm text-[var(--cc-text)] outline-none transition placeholder:text-[var(--cc-muted)] hover:border-[#2078C0]/50 focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10"
                 required
               />
               <span id="login-identifier-help" className="sr-only">
@@ -179,7 +176,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="login-password"
-                className="mb-2 block text-sm font-medium text-slate-700"
+                className="mb-2 block text-sm font-medium text-[var(--cc-text)]"
               >
                 Password
               </label>
@@ -193,7 +190,7 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={handleChange}
                   aria-invalid={Boolean(error && !form.password)}
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3.5 pr-16 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                  className="h-12 w-full rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3.5 pr-12 text-sm text-[var(--cc-text)] outline-none transition placeholder:text-[var(--cc-muted)] hover:border-[#2078C0]/50 focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10"
                   required
                 />
                 <button
@@ -201,29 +198,30 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-0 rounded-r-lg px-3 text-xs font-semibold text-slate-500 outline-none hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
+                  className="absolute inset-y-0 right-0 flex items-center justify-center rounded-r-lg px-3 text-[var(--cc-muted)] outline-none hover:text-[#2078C0] transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2078C0] cursor-pointer"
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword
+                    ? <EyeClosedIcon size={18} strokeWidth={1.8} aria-hidden="true" />
+                    : <EyeIcon size={18} strokeWidth={1.8} aria-hidden="true" />
+                  }
                 </button>
               </div>
             </div>
 
-            <div className="min-h-[48px]">
-              {error && (
-                <p
-                  role="alert"
-                  aria-live="polite"
-                  className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm leading-5 text-red-700"
-                >
-                  {error}
-                </p>
-              )}
-            </div>
+            {error && (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="rounded-lg border border-red-200 bg-red-50 dark:border-red-800/50 dark:bg-red-950/40 px-3.5 py-3 text-sm leading-5 text-red-700 dark:text-red-400"
+              >
+                {error}
+              </p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-700/20 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#2078C0] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1a68a8] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2078C0]/25 disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
             >
               {loading && (
                 <svg
@@ -251,9 +249,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-[var(--cc-muted)]">
             Need an account?{' '}
-            <Link to="/signup" className="font-semibold text-blue-700 hover:text-blue-800">
+            <Link to="/signup" className="font-semibold text-[#2078C0] hover:text-[#1a68a8]">
               Create one
             </Link>
           </p>
@@ -261,7 +259,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="mt-7 w-full rounded-md py-2 text-sm font-medium text-slate-500 outline-none transition hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="mt-7 w-full rounded-md py-2 text-sm font-medium text-[var(--cc-muted)] outline-none transition hover:text-[#2078C0] focus-visible:ring-2 focus-visible:ring-[#2078C0] cursor-pointer"
           >
             Back to home
           </button>

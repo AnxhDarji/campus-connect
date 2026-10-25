@@ -123,25 +123,25 @@ export default function VerifyOtpPage() {
 
   return (
     <PageTransition>
-      <main className="min-h-dvh bg-gray-50 px-5 py-8 text-gray-900 sm:px-8">
+      <main className="min-h-dvh bg-[var(--cc-bg)] px-5 py-8 text-[var(--cc-text)] sm:px-8">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between">
-        <Link to="/" className="text-base font-semibold tracking-tight text-gray-900">
-          CampusConnect
+        <Link to="/" aria-label="CampusConnect home" className="flex items-center">
+          <img src="/CampusConnect_logo.png" alt="CampusConnect" className="cc-brand-logo cc-brand-logo--auth" />
         </Link>
         <ThemePreference />
       </header>
 
       <section className="mx-auto w-full max-w-md py-10 sm:py-14">
         <div className="mb-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#2078C0]">
             Email verification
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
+          <h1 className="font-heading mt-2 text-3xl font-semibold tracking-tight text-[var(--cc-text)]">
             Verify your email
           </h1>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
+          <p className="mt-2 text-sm leading-6 text-[var(--cc-muted)]">
             Enter the 6-digit code sent to{' '}
-            <span className="font-medium text-gray-800">{maskedEmail}</span>.
+            <span className="font-medium text-[var(--cc-text)]">{maskedEmail}</span>.
           </p>
         </div>
 
@@ -177,8 +177,8 @@ export default function VerifyOtpPage() {
                   onChange={(event) => handleChange(index, event.target.value)}
                   onKeyDown={(event) => handleKeyDown(index, event)}
                   aria-label={`Digit ${index + 1} of ${OTP_LENGTH}`}
-                  className={`h-12 min-w-0 w-10 rounded-lg border bg-white text-center text-lg font-semibold text-gray-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 sm:h-14 sm:w-12 ${
-                    digit ? 'border-blue-400' : 'border-gray-300'
+                  className={`h-12 min-w-0 w-10 rounded-lg border bg-[var(--cc-surface)] text-center text-lg font-semibold text-[var(--cc-text)] outline-none transition focus:border-[#2078C0] focus:ring-4 focus:ring-[#2078C0]/10 sm:h-14 sm:w-12 ${
+                    digit ? 'border-[#2078C0]/70' : 'border-[var(--cc-border)]'
                   }`}
                 />
               ))}

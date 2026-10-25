@@ -2,50 +2,68 @@
 
 :root {
   color-scheme: light;
-  --cc-font-family: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cc-font-family: var(--font-body);
   font-family: var(--cc-font-family);
-  --cc-bg: #eef3fa;
-  --cc-surface: #ffffff;
-  --cc-raised: #e7edf5;
-  --cc-navy: #465675;
-  --cc-text: #465675;
-  --cc-muted: #697586;
-  --cc-subtle: #697586;
-  --cc-border: #d8e1ee;
-  --cc-accent: #7899d4;
-  --cc-link: #4f668b;
-  --cc-action: #536f9f;
-  --cc-action-hover: #465f8e;
-  --cc-focus: #536f9f;
-  --cc-sage: #8dbba8;
-  --cc-sage-ink: #436d5f;
-  --cc-amber: #e9c98d;
-  --cc-amber-ink: #765c2f;
-  --cc-error: #9f5055;
-  --cc-error-bg: #f8e9ea;
+
+  /* CampusConnect Brand Identity */
+  --cc-ocean: #2078C0;
+  --cc-teal: #48A090;
+  --cc-navy: #203860;
+  --cc-ice: #EAF2FB;
+  --cc-mint: #E8F5F1;
+  --cc-bg: #F7F9FC;
+  --cc-surface: #FFFFFF;
+  --cc-raised: #EDF2F7;
+  --cc-text: #203860;
+  --cc-muted: #526784;
+  --cc-subtle: #70819A;
+  --cc-border: #E2E8F0;
+  --cc-accent: #2078C0;
+  --cc-link: #2078C0;
+  --cc-action: #2078C0;
+  --cc-action-hover: #1A639F;
+  --cc-focus: #2078C0;
+  --cc-sage: #48A090;
+  --cc-sage-ink: #2D6A5E;
+  --cc-amber: #D99B26;
+  --cc-amber-ink: #8F5B0C;
+  --cc-error: #DC2626;
+  --cc-error-bg: #FEE2E2;
+  --cc-icon-primary: #2078C0;
+  --cc-icon-secondary: #526784;
+  --cc-icon-surface: #EAF2FB;
 }
 
 :root.dark {
   color-scheme: dark;
-  --cc-bg: #20252e;
-  --cc-surface: #272e38;
-  --cc-raised: #343d49;
-  --cc-navy: #465675;
-  --cc-text: #e7ecf4;
-  --cc-muted: #bac4d1;
-  --cc-subtle: #a6b1c0;
-  --cc-border: #414c5b;
-  --cc-accent: #9fb5dc;
-  --cc-link: #b0c4e8;
-  --cc-action: #536f9f;
-  --cc-action-hover: #465f8e;
-  --cc-focus: #9fb5dc;
-  --cc-sage: #8dbba8;
-  --cc-sage-ink: #b1d8c7;
-  --cc-amber: #e9c98d;
-  --cc-amber-ink: #efd39f;
-  --cc-error: #f0a5a9;
-  --cc-error-bg: #482f35;
+  --cc-bg: #1F242D;
+  --cc-surface: #272E38;
+  --cc-raised: #323B47;
+  --cc-navy: #A4C5EC;
+  --cc-text: #F1F5F9;
+  --cc-muted: #94A3B8;
+  --cc-subtle: #64748B;
+  --cc-border: #3B4655;
+  --cc-ocean: #3894DC;
+  --cc-teal: #48A090;
+  --cc-ice: #253142;
+  --cc-mint: #1E3430;
+  --cc-accent: #3894DC;
+  --cc-link: #4EA1E8;
+  --cc-action: #2078C0;
+  --cc-action-hover: #1B6CB0;
+  --cc-focus: #3894DC;
+  --cc-sage: #48A090;
+  --cc-sage-ink: #72C7B7;
+  --cc-amber: #EAB308;
+  --cc-amber-ink: #FDE047;
+  --cc-error: #F87171;
+  --cc-error-bg: #451A1A;
+  --cc-icon-primary: #8CC8FF;
+  --cc-icon-secondary: #B5C1D1;
+  --cc-icon-surface: #303D50;
 }
 
 @layer base {
@@ -53,6 +71,18 @@
     background: var(--cc-bg);
     font-family: var(--cc-font-family);
     scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+  }
+
+  html:not(.dark) h1,
+  html:not(.dark) h2,
+  html:not(.dark) h3,
+  html:not(.dark) .heading-navy {
+    color: var(--cc-navy);
   }
 
   body {
@@ -88,6 +118,90 @@
 
 .dark body {
   color: var(--cc-text);
+}
+
+/* Shared only by authenticated navigation and dashboard shortcuts. */
+.cc-icon-tile {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  color: var(--cc-icon-primary);
+  background: var(--cc-icon-surface);
+}
+
+.cc-icon-button {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  color: var(--cc-icon-secondary);
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.cc-icon-button:hover {
+  color: var(--cc-icon-primary);
+  background: var(--cc-raised);
+}
+
+.cc-icon-button:active {
+  transform: scale(0.96);
+}
+
+.cc-icon-button--profile {
+  color: var(--cc-icon-primary);
+}
+
+/* Landing feature tiles keep their own restrained theme treatment. */
+.cc-landing-feature-icon {
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: #2078C0;
+  background: #EAF2FB;
+}
+
+.dark .cc-landing-feature-icon {
+  color: #8CC8FF;
+  background: #303D50;
+}
+
+/* The source logo is portrait-leaning, so sizing it by width keeps the mark
+   recognizable without making any navigation row taller than necessary. */
+.cc-brand-logo {
+  display: block;
+  width: 4rem;
+  height: auto;
+  flex: none;
+  object-fit: contain;
+  border: 1px solid color-mix(in srgb, var(--cc-border) 82%, transparent);
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(32 56 96 / 0.05);
+}
+
+.cc-brand-logo--auth {
+  width: 4.25rem;
+}
+
+@media (max-width: 639px) {
+  .cc-brand-logo {
+    width: 3.5rem;
+    border-radius: 0.4375rem;
+  }
+
+  .cc-brand-logo--auth {
+    width: 3.75rem;
+  }
 }
 
 .dark .bg-white,
@@ -464,7 +578,7 @@ html:not(.dark) .bg-blue-100,
 html:not(.dark) .bg-indigo-50,
 html:not(.dark) .bg-sky-50,
 html:not(.dark) .bg-sky-100 {
-  background-color: #e5edf8;
+  background-color: var(--cc-ice);
 }
 
 html:not(.dark) .border-blue-100,
@@ -579,7 +693,7 @@ html:not(.dark) .bg-green-50,
 html:not(.dark) .bg-green-100,
 html:not(.dark) .bg-emerald-50,
 html:not(.dark) .bg-emerald-100 {
-  background-color: #e7f0eb;
+  background-color: var(--cc-mint);
 }
 
 html:not(.dark) .text-green-600,
@@ -859,7 +973,11 @@ html,
 }
 
 .cc-landing-hero {
-  background-image: radial-gradient(ellipse at 14% 26%, color-mix(in srgb, var(--cc-accent) 11%, transparent), transparent 42%);
+  background-image: radial-gradient(ellipse at 18% 30%, color-mix(in srgb, var(--cc-ocean) 9%, transparent), color-mix(in srgb, var(--cc-teal) 6%, transparent) 40%, transparent 68%);
+}
+
+.dark .cc-landing-hero {
+  background-image: radial-gradient(ellipse at 18% 30%, color-mix(in srgb, var(--cc-ocean) 12%, transparent), color-mix(in srgb, var(--cc-teal) 8%, transparent) 40%, transparent 68%);
 }
 
 .cc-festival-banner {

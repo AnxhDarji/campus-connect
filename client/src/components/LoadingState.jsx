@@ -16,8 +16,8 @@ export default function LoadingState({
     >
       <img
         className="cc-loading-logo"
-        src="/favicon.svg"
-        alt=""
+        src="/CampusConnect_logo.png"
+        alt="CampusConnect"
         width={size}
         height={size}
         style={{ width: size, height: "auto" }}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CalendarIcon, ClipboardAddIcon, ClipboardListIcon, UserCircleIcon, ArrowRightIcon } from '@solar-icons/react/linear';
 
 const shortcuts = [
   {
@@ -8,24 +9,28 @@ const shortcuts = [
     description: 'Browse events available through CampusConnect.',
     path: '/events',
     action: 'Browse events',
+    Icon: CalendarIcon,
   },
   {
     title: 'Create an event request',
     description: 'Start a request to organize a campus event.',
     path: '/events/create',
     action: 'Create request',
+    Icon: ClipboardAddIcon,
   },
   {
     title: 'My requests',
     description: 'Review the event requests you have submitted.',
     path: '/events/my',
     action: 'View my requests',
+    Icon: ClipboardListIcon,
   },
   {
     title: 'Profile',
     description: 'Review your account details and profile information.',
     path: '/profile',
     action: 'View profile',
+    Icon: UserCircleIcon,
   },
 ];
 
@@ -103,23 +108,28 @@ export default function DashboardPage() {
         </div>
 
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {shortcuts.map((shortcut) => (
+          {shortcuts.map(({ Icon, ...shortcut }) => (
             <li key={shortcut.path}>
               <Link
                 to={shortcut.path}
                 className="cc-interactive-card group flex h-full min-h-36 flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 transition-[transform,border-color,background-color,box-shadow] duration-200 hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
               >
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-blue-800">
-                    {shortcut.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    {shortcut.description}
-                  </p>
+                <div className="flex items-start gap-3.5">
+                  <span className="cc-icon-tile" aria-hidden="true">
+                    <Icon size={22} strokeWidth={1.8} />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 transition group-hover:text-blue-800">
+                      {shortcut.title}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6 text-gray-600">
+                      {shortcut.description}
+                    </p>
+                  </div>
                 </div>
                 <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
                   {shortcut.action}
-                  <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+                  <ArrowRightIcon aria-hidden="true" size={16} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-1" />
                 </span>
               </Link>
             </li>

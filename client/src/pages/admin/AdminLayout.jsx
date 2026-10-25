@@ -6,27 +6,24 @@ import ThemePreference from "../../components/ThemePreference";
 import PageTransition from "../../components/PageTransition";
 import { useSignOut } from "../../context/SignOutContext";
 import LoadingState from "../../components/LoadingState";
+import {
+  WidgetIcon,
+  ClockCircleIcon,
+  CheckCircleIcon,
+  CloseCircleIcon,
+  GalleryIcon,
+  NotesIcon,
+  HamburgerMenuIcon,
+} from "@solar-icons/react/linear";
 
 const NAV = [
-  { label: "Dashboard", path: "/admin", icon: "grid" },
-  { label: "Pending", path: "/admin/pending", icon: "clock" },
-  { label: "Approved", path: "/admin/approved", icon: "check" },
-  { label: "Rejected", path: "/admin/rejected", icon: "minus" },
-  { label: "Completion & AI Posters", path: "/admin/completed", icon: "image" },
-  { label: "All Requests", path: "/admin/all", icon: "list" },
+  { label: "Dashboard", path: "/admin", Icon: WidgetIcon },
+  { label: "Pending", path: "/admin/pending", Icon: ClockCircleIcon },
+  { label: "Approved", path: "/admin/approved", Icon: CheckCircleIcon },
+  { label: "Rejected", path: "/admin/rejected", Icon: CloseCircleIcon },
+  { label: "Completion & AI Posters", path: "/admin/completed", Icon: GalleryIcon },
+  { label: "All Requests", path: "/admin/all", Icon: NotesIcon },
 ];
-
-function NavIcon({ name }) {
-  const paths = {
-    grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-    check: <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></>,
-    minus: <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>,
-    image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="m21 15-5-5L5 20" /></>,
-    list: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></>,
-  };
-  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px] shrink-0">{paths[name]}</svg>;
-}
 
 export default function AdminLayout() {
   const { user } = useAuth();
@@ -79,48 +76,58 @@ export default function AdminLayout() {
     path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(path);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 lg:flex">
+    <div className="min-h-screen bg-[var(--cc-bg)] text-[var(--cc-text)] lg:flex">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[min(18rem,86vw)] flex-col border-r border-gray-100 bg-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:self-start lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[min(18rem,86vw)] flex-col border-r border-[var(--cc-border)] bg-[var(--cc-surface)] transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:self-start lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="border-b border-gray-100 px-5 py-5">
-          <p className="text-base font-bold tracking-tight text-gray-900">CampusConnect</p>
-          <p className="mt-1 text-xs font-medium text-gray-400">Administration</p>
+        <div className="border-b border-[var(--cc-border)] px-4 py-4 flex items-center gap-3">
+          <img src="/CampusConnect_logo.png" alt="CampusConnect" className="cc-brand-logo" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--cc-muted)]">Administration</p>
+          </div>
         </div>
-        <nav aria-label="Administration" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
-          {NAV.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => { navigate(item.path); setSidebarOpen(false); }}
-              aria-current={isActive(item.path) ? "page" : undefined}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                isActive(item.path)
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <NavIcon name={item.icon} />
-              <span className="min-w-0 flex-1">{item.label}</span>
-              {item.path === "/admin/pending" && stats?.pending > 0 && (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                  {stats.pending}
-                </span>
-              )}
-            </button>
-          ))}
+        <nav aria-label="Administration" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+          {NAV.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+                aria-current={active ? "page" : undefined}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-[background-color,color] duration-150 cursor-pointer ${
+                  active
+                    ? "bg-[var(--cc-ice)] text-[var(--cc-ocean)] shadow-[inset_3px_0_0_var(--cc-ocean)]"
+                    : "text-[var(--cc-muted)] hover:bg-[var(--cc-raised)] hover:text-[var(--cc-text)]"
+                }`}
+              >
+                <item.Icon
+                  size={18}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                  color={active ? "var(--cc-ocean)" : undefined}
+                />
+                <span className="min-w-0 flex-1">{item.label}</span>
+                {item.path === "/admin/pending" && stats?.pending > 0 && (
+                  <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                    {stats.pending}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
-        <div className="shrink-0 space-y-4 border-t border-gray-100 p-4">
+        <div className="shrink-0 space-y-4 border-t border-[var(--cc-border)] p-4">
           <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700">
+            <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF2FB] dark:bg-[#253142] text-sm font-bold text-[#2078C0] dark:text-[#3894DC]">
               {user?.fullName?.charAt(0)?.toUpperCase() || "A"}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-gray-800">{user?.fullName}</p>
-              <p className="truncate text-[11px] text-gray-400">{user?.role}</p>
+              <p className="truncate text-xs font-semibold text-[var(--cc-text)]">{user?.fullName}</p>
+              <p className="truncate text-[11px] text-[var(--cc-muted)]">{user?.role}</p>
             </div>
-            <button onClick={requestSignOut} className="text-xs font-medium text-red-600 transition-colors hover:text-red-700">Sign out</button>
+            <button onClick={requestSignOut} className="text-xs font-semibold text-red-600 dark:text-red-400 transition-colors hover:text-red-700 cursor-pointer">Sign out</button>
           </div>
         </div>
       </aside>
@@ -128,23 +135,23 @@ export default function AdminLayout() {
       {sidebarOpen && (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-gray-950/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-950/30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:justify-end">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--cc-border)] bg-[var(--cc-surface)]/95 px-4 py-3 backdrop-blur sm:px-6 lg:justify-end">
           <div className="flex items-center gap-3 lg:hidden">
             <button
               aria-label="Open navigation"
               aria-expanded={sidebarOpen}
               onClick={() => setSidebarOpen(true)}
-              className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--cc-border)] text-[var(--cc-muted)] hover:bg-[var(--cc-raised)] transition cursor-pointer"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+              <HamburgerMenuIcon size={20} strokeWidth={1.8} aria-hidden="true" />
             </button>
-            <p className="text-sm font-semibold text-gray-900">Admin Panel</p>
+            <p className="text-sm font-semibold text-[var(--cc-text)]">Admin Panel</p>
           </div>
           <ThemePreference />
         </header>
