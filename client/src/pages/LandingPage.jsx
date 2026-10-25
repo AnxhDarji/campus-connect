@@ -24,7 +24,13 @@ const FEATURES = [
     label: "Your Account",
     desc: "Manage your profile and university account information.",
   },
+];
 
+const TEAM = [
+  { name: "Kalp Patel",       role: "Backend / API Developer" },
+  { name: "Anshkumar Darji",  role: "Full-Stack Developer (AI Integration)" },
+  { name: "Krrish Bardwaj",   role: "Backend / Authentication Developer" },
+  { name: "Jash Baldha",      role: "Full-Stack Developer" },
 ];
 
 export default function LandingPage() {
@@ -107,10 +113,7 @@ export default function LandingPage() {
                   className="flex items-start gap-4 rounded-xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-4 shadow-sm transition-shadow hover:shadow-md"
                 >
                   <span className="cc-landing-feature-icon" aria-hidden="true">
-                    <Icon
-                      size={18}
-                      strokeWidth={1.8}
-                    />
+                    <Icon size={18} strokeWidth={1.8} />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-[var(--cc-text)]">
@@ -128,6 +131,47 @@ export default function LandingPage() {
             </p>
           </div>
         </section>
+
+        {/* ── Video Section ───────────────────────────────────────── */}
+        <section className="relative w-full overflow-hidden" style={{ height: "100svh" }}>
+          <video
+            src="/Generated Video October 25, 2026 - 5_52PM.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
+          <div className="relative flex h-full items-end justify-center pb-12">
+            <p className="text-center text-sm font-medium tracking-widest text-white/70 uppercase">
+              CampusConnect — Where Campus Life Connects
+            </p>
+          </div>
+        </section>
+
+        {/* ── Footer ─────────────────────────────────────────────── */}
+        <footer className="border-t border-[var(--cc-border)] bg-[var(--cc-surface)] px-6 py-10">
+          <div className="mx-auto max-w-4xl">
+            <p className="mb-6 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--cc-muted)]">
+              Built by the Team
+            </p>
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+              {TEAM.map(({ name, role }) => (
+                <div key={name} className="flex flex-col items-center gap-1.5 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2078C0]/10 text-sm font-bold text-[#2078C0]">
+                    {name.charAt(0)}
+                  </div>
+                  <p className="text-sm font-semibold text-[var(--cc-text)]">{name}</p>
+                  <p className="text-[11px] leading-4 text-[var(--cc-muted)]">{role}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 text-center text-[11px] text-[var(--cc-muted)]">
+              © {new Date().getFullYear()} CampusConnect · CHARUSAT
+            </p>
+          </div>
+        </footer>
       </main>
     </PageTransition>
   );
