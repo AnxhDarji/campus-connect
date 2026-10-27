@@ -68,7 +68,7 @@ const buildEventData = (body, userId) => {
 // POST /api/event-requests/poster/generate
 export const generateAnnouncementPoster = async (req, res, next) => {
   try {
-    const { title, category, description, start_date, start_time, venue, department, requester_name, organization_name } = req.body;
+    const { title, category, description, start_date, start_time, end_time, venue, building, department, requester_name, organization_name, registration_required, registration_deadline } = req.body;
     if (!title?.trim()) {
       return res.status(400).json({ success: false, message: "Enter an event title before generating its announcement image." });
     }
@@ -79,10 +79,14 @@ export const generateAnnouncementPoster = async (req, res, next) => {
       description,
       start_date,
       start_time,
+      end_time,
       venue,
+      building,
       department,
       requester_name,
       organization_name,
+      registration_required,
+      registration_deadline,
     }, null, "announcement");
 
     res.json({ success: true, data: { url } });

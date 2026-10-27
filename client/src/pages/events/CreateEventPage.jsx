@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { createEventRequest, uploadPoster, uploadQR, uploadBrochure, getDepartments } from "../../services/eventService";
+import { createEventRequest, uploadPoster, uploadQR, uploadBrochure, getDepartments, generateAnnouncementPoster } from "../../services/eventService";
 import { validateStep, validateEventForm, validatePhone, validateOrgEmail, validateStartDate, validateEndDate, validateRegistrationDeadline } from "../../utils/eventValidation";
 import FileUploadField from "../../components/FileUploadField";
 import Button from "../../components/Button";
@@ -12,7 +12,7 @@ const CATEGORIES = ["Technical","Non-Technical","Workshop","Seminar","Sports","C
 const REQUESTER_ROLES = ["Event Manager","Club Representative","Volunteer Lead","Media Team Member","Faculty Coordinator","Student Coordinator","Department Representative","External College Representative","Student","Other"];
 const ORG_TYPES = ["Department","Student Club","College Committee","Faculty","External College","Student Group","Other"];
 const STORAGE_KEY = "cc_event_draft";
-const STEPS = ["Who are you?", "Event Details", "When & Where", "Registration & Links"];
+const STEPS = ["Who are you?", "Event Details", "When & Where", "Registration & Links", "Preview & Confirm"];
 
 const INITIAL = {
   requester_name: "", requester_role: "", custom_role: "",
@@ -43,6 +43,10 @@ export default function CreateEventPage() {
   const [successId, setSuccessId] = useState(null);
   const [successMongoId, setSuccessMongoId] = useState(null);
   const [duplicateWarn, setDuplicateWarn] = useState(false);
+  const [announcementPoster, setAnnouncementPoster] = useState("");
+  const [posterGenerating, setPosterGenerating] = useState(false);
+  const [posterUploading, setPosterUploading] = useState(false);
+  const [posterError, setPosterError] = useState("");
 
   useEffect(() => {
     if (user) setForm((p) => ({ ...p, requester_name: user.fullName || "", email: user.email || "" }));
@@ -143,6 +147,51 @@ export default function CreateEventPage() {
     </div>
   );
 
+  const handleGeneratePoster = async () => {
+    setPosterGenerating(true);
+    setPosterError("");
+    try {
+      const dept = departments.find((d) => d._id === form.department_id);
+      const res = await generateAnnouncementPoster({
+        title: form.title,
+        category: form.category,
+        description: form.description,
+        start_date: form.start_date,
+        start_time: form.start_time,
+        end_time: form.end_time,
+        venue: form.venue,
+        building: form.building,
+        department: dept?.name || "",
+        requester_name: form.requester_name,
+        organization_name: form.organization_name,
+        registration_required: form.registration_required,
+        registration_deadline: form.registration_deadline,
+      });
+      const url = res.data?.data?.url || res.data?.url;
+      if (!url) throw new Error("No URL returned.");
+      setAnnouncementPoster(url);
+    } catch (e) {
+      setPosterError(e.response?.data?.message || e.message || "Generation failed. Please try again.");
+    } finally {
+      setPosterGenerating(false);
+    }
+  };
+
+  const handleUploadPoster = async (file) => {
+    setPosterUploading(true);
+    setPosterError("");
+    try {
+      const res = await uploadPoster(file);
+      const url = res.data?.url || res.data?.data?.url;
+      if (!url) throw new Error("Upload did not return a URL.");
+      setAnnouncementPoster(url);
+    } catch (e) {
+      setPosterError(e.response?.data?.message || e.message || "Upload failed.");
+    } finally {
+      setPosterUploading(false);
+    }
+  };
+
   if (successId) {
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-8">
@@ -159,16 +208,113 @@ export default function CreateEventPage() {
             <p className="text-xs text-gray-400 mb-6 font-mono break-all">ID: {successId}</p>
             <div className="flex gap-2">
               <button onClick={() => navigate("/events/my")} className="flex-1 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">My Requests</button>
-              <button onClick={() => { setSuccessId(null); setSuccessMongoId(null); setForm(INITIAL); setStep(0); setErrors({}); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
+              <button onClick={() => { setSuccessId(null); setSuccessMongoId(null); setForm(INITIAL); setStep(0); setErrors({}); setAnnouncementPoster(""); setPosterError(""); }} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">New Request</button>
             </div>
           </div>
+
+          {/* Announcement Poster */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Announcement Poster</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Generate an AI announcement poster or upload your own.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleGeneratePoster}
+                disabled={posterGenerating || posterUploading}
+                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
+              >
+                {posterGenerating ? "Generating..." : announcementPoster ? "Regenerate with AI" : "✨ Generate with AI"}
+              </button>
+              <label className={`rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-xs font-semibold text-gray-600 text-center cursor-pointer transition hover:bg-gray-50 ${posterUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                {posterUploading ? "Uploading..." : "📁 Upload Custom"}
+                <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden"
+                  onChange={(e) => e.target.files[0] && handleUploadPoster(e.target.files[0])} />
+              </label>
+            </div>
+            {posterError && <p className="text-xs text-red-500">{posterError}</p>}
+            {announcementPoster && (
+              <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                <img src={announcementPoster} alt="Announcement poster" className="h-24 w-20 rounded-lg border border-gray-200 object-contain bg-white shrink-0" />
+                <div className="flex flex-col gap-2 pt-1">
+                  <p className="text-xs font-medium text-green-700">Poster ready!</p>
+                  <a href={announcementPoster} target="_blank" rel="noreferrer" download
+                    className="text-xs font-semibold text-blue-600 hover:underline">Download</a>
+                </div>
+              </div>
+            )}
+          </div>
+
           {form.promoteOnInstagram && successMongoId && (
-            <InstagramPostPanel eventId={successMongoId} postType="EVENT_PROMOTION" eventPosterUrl={form.poster_url || null} title="Instagram Event Promotion" />
+            <InstagramPostPanel eventId={successMongoId} postType="EVENT_PROMOTION" eventPosterUrl={form.poster_url || null} aiPosterUrl={announcementPoster || null} title="Instagram Event Promotion" />
           )}
         </div>
       </div>
     );
   }
+
+  const PreviewRow = ({ label, value }) =>
+    value ? <div className="flex gap-2 text-xs"><span className="w-36 shrink-0 font-medium text-gray-500">{label}</span><span className="text-gray-800 break-all">{value}</span></div> : null;
+
+  const PreviewSection = ({ title, stepIndex, children }) => (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-600">{title}</h3>
+        <button type="button" onClick={() => { setErrors({}); setStep(stepIndex); }}
+          className="text-xs font-medium text-blue-600 hover:underline">Edit</button>
+      </div>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+
+  const previewStep = (
+    <div className="space-y-3" key="s4">
+      <PreviewSection title="Who are you?" stepIndex={0}>
+        <PreviewRow label="Name" value={form.requester_name} />
+        <PreviewRow label="Email" value={form.email} />
+        <PreviewRow label="Role" value={form.requester_role === "Other" ? form.custom_role : form.requester_role} />
+        <PreviewRow label="Organization Type" value={form.organization_type} />
+        <PreviewRow label="Organization Name" value={form.organization_name} />
+        <PreviewRow label="Org Email" value={form.organization_email} />
+        <PreviewRow label="Contact" value={form.contact_number} />
+      </PreviewSection>
+
+      <PreviewSection title="Event Details" stepIndex={1}>
+        <PreviewRow label="Title" value={form.title} />
+        <PreviewRow label="Category" value={form.category} />
+        <PreviewRow label="Department" value={departments.find((d) => d._id === form.department_id)?.name} />
+        <PreviewRow label="Club / Committee" value={form.club_name} />
+        <PreviewRow label="Description" value={form.description} />
+        {form.poster_url && (
+          <div className="flex gap-2 text-xs items-center">
+            <span className="w-36 shrink-0 font-medium text-gray-500">Poster</span>
+            <img src={form.poster_url} alt="poster" className="h-16 w-14 rounded border border-gray-200 object-contain bg-white" />
+          </div>
+        )}
+      </PreviewSection>
+
+      <PreviewSection title="When & Where" stepIndex={2}>
+        <PreviewRow label="Start" value={form.start_date && form.start_time ? `${form.start_date} at ${form.start_time}` : form.start_date} />
+        <PreviewRow label="End" value={form.end_date && form.end_time ? `${form.end_date} at ${form.end_time}` : form.end_date} />
+        <PreviewRow label="Venue" value={[form.venue, form.building, form.room ? `Room ${form.room}` : ""].filter(Boolean).join(", ")} />
+        <PreviewRow label="Google Maps" value={form.google_map_url} />
+      </PreviewSection>
+
+      <PreviewSection title="Registration & Links" stepIndex={3}>
+        <PreviewRow label="Registration" value={form.registration_required ? "Required" : "Not required"} />
+        {form.registration_required && <>
+          <PreviewRow label="Reg. Link" value={form.registration_link} />
+          <PreviewRow label="Deadline" value={form.registration_deadline} />
+        </>}
+        <PreviewRow label="Website" value={form.website_url} />
+        <PreviewRow label="Instagram" value={form.instagram_url} />
+        <PreviewRow label="LinkedIn" value={form.linkedin_url} />
+        <PreviewRow label="WhatsApp" value={form.whatsapp_url} />
+        <PreviewRow label="Promote on IG" value={form.promoteOnInstagram ? "Yes" : undefined} />
+      </PreviewSection>
+    </div>
+  );
 
   const stepContent = [
     // Step 0 — Who are you?
@@ -282,6 +428,7 @@ export default function CreateEventPage() {
         </label>
       </div>
     </div>,
+    previewStep,
   ];
 
   return (
@@ -335,7 +482,7 @@ export default function CreateEventPage() {
           )}
           {step < STEPS.length - 1 ? (
             <button onClick={handleNext} className="flex-1 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-              Next
+              {step === STEPS.length - 2 ? "Preview" : "Next"}
             </button>
           ) : (
             <Button loading={submitting} onClick={handleSubmit}>

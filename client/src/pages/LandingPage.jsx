@@ -28,9 +28,9 @@ const FEATURES = [
 
 const TEAM = [
   { name: "Kalp Patel",       role: "Backend / API Developer" },
-  { name: "Anshkumar Darji",  role: "Full-Stack Developer (AI Integration)" },
-  { name: "Krrish Bardwaj",   role: "Backend / Authentication Developer" },
-  { name: "Jash Baldha",      role: "Full-Stack Developer" },
+  { name: "Anshkumar Darji",  role: "Full-Stack Developer" },
+  { name: "Krrish Bardwaj",   role: "Full-Stack Developer" },
+  { name: "Jash Baldha",      role: "Frontend & Data-Base Developer" },
 ];
 
 export default function LandingPage() {

@@ -54,6 +54,25 @@ function textBlock(value, { x, y, size, color = "#ffffff", weight = 400, maxChar
     .join("")}</text>`;
 }
 
+function fallbackBackground() {
+  // Returns a minimal SVG data URI used when the image provider is unavailable.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/></linearGradient></defs><rect width="800" height="1000" fill="url(#g)"/></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "image/jpeg,image/png,image/webp" },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function generateAbstractBackground(event, purpose) {
   const category = clean(event.category, 48) || "campus";
   const prompt = [
@@ -62,35 +81,146 @@ async function generateAbstractBackground(event, purpose) {
     "No text, letters, numbers, logos, people, buildings, objects, photography, or identifiable scenes.",
     "Portrait 4:5 composition, restrained contrast, suitable behind readable white typography.",
   ].join(" ");
-  const seed = Math.floor(Math.random() * 2_000_000_000);
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=800&height=1000&seed=${seed}&nologo=true`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
 
-  try {
-    const response = await fetch(imageUrl, {
-      signal: controller.signal,
-      headers: { Accept: "image/jpeg,image/png,image/webp" },
-    });
-    if (!response.ok) throw new Error(`Image provider returned status ${response.status}.`);
+  const RETRIES = 3;
+  const TIMEOUT = 25_000;
 
-    const contentType = response.headers.get("content-type")?.split(";")[0] || "";
-    if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
-      throw new Error("Image provider returned an unsupported image format.");
-    }
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    const seed = Math.floor(Math.random() * 2_000_000_000);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=800&height=1000&seed=${seed}&nologo=true`;
+    try {
+      const response = await fetchWithTimeout(imageUrl, TIMEOUT);
+      if (!response.ok) throw new Error(`status ${response.status}`);
 
-    const contentLength = Number(response.headers.get("content-length") || 0);
-    if (contentLength > 5 * 1024 * 1024) {
-      throw new Error("Generated background exceeded the 5MB image limit.");
+      const contentType = response.headers.get("content-type")?.split(";")[0] || "";
+      if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
+        throw new Error(`unexpected content-type: ${contentType}`);
+      }
+
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
+        throw new Error("image too large or empty");
+      }
+      return `data:${contentType};base64,${bytes.toString("base64")}`;
+    } catch (err) {
+      console.warn(`[geminiImageService] background attempt ${attempt}/${RETRIES} failed: ${err.message}`);
+      if (attempt < RETRIES) {
+        await new Promise((r) => setTimeout(r, attempt * 1500));
+      }
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
-      throw new Error("Generated background exceeded the 5MB image limit.");
-    }
-    return `data:${contentType};base64,${bytes.toString("base64")}`;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  console.warn("[geminiImageService] all background attempts failed — using fallback gradient.");
+  return fallbackBackground();
+}
+
+async function buildAnnouncementSvg(event) {
+  const title = clean(event.title, 120) || "Campus Event";
+  const category = clean(event.category, 48);
+  const department = clean(event.department?.name || event.department_id?.name || event.department, 64);
+  const organizer = clean(event.organization_name || event.requester_name, 72);
+  const venue = clean(event.venue, 60);
+  const building = clean(event.building, 40);
+  const venueDisplay = [venue, building].filter(Boolean).join(", ");
+  const date = formatDate(event.start_date);
+  const timeDisplay = event.start_time && event.end_time
+    ? `${clean(event.start_time, 10)}  –  ${clean(event.end_time, 10)}`
+    : event.start_time ? clean(event.start_time, 10) : "";
+  const description = clean(event.description, 200);
+  const regDeadline = event.registration_deadline ? formatDate(event.registration_deadline) : "";
+
+  const abstractBackground = await generateAbstractBackground(event, "event announcement");
+
+  const titleLines = wrapText(title, 20, 3);
+  const titleMarkup = titleLines.map((line, i) =>
+    `<tspan x="60" dy="${i === 0 ? 0 : 70}">${xmlEscape(line)}</tspan>`
+  ).join("");
+  const titleFontSize = titleLines.length > 2 ? 50 : 60;
+
+  const descMarkup = textBlock(description, {
+    x: 60, y: 530, size: 24, color: "#fef3c7", maxChars: 44, maxLines: 3, lineHeight: 36,
+  });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="strip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="datepill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity=".10"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="22"/></filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <image href="${abstractBackground}" x="0" y="0" width="800" height="1000" preserveAspectRatio="xMidYMid slice" filter="url(#blur)" opacity=".18"/>
+  <rect width="800" height="1000" fill="url(#bg)" opacity=".72"/>
+
+  <!-- Decorative circles -->
+  <circle cx="740" cy="80" r="260" fill="#f59e0b" opacity=".06"/>
+  <circle cx="-40" cy="920" r="200" fill="#f97316" opacity=".07"/>
+
+  <!-- Top amber strip -->
+  <rect x="0" y="0" width="800" height="72" fill="url(#strip)"/>
+  <text x="60" y="47" fill="#0f172a" font-size="20" font-weight="800" letter-spacing="5" font-family="Arial, Helvetica, sans-serif">ANNOUNCING</text>
+  ${category ? `<text x="740" y="47" fill="#0f172a" font-size="15" font-weight="700" text-anchor="end" font-family="Arial, Helvetica, sans-serif">${xmlEscape(category.toUpperCase())}</text>` : ""}
+
+  <!-- Border frame -->
+  <rect x="40" y="88" width="720" height="872" rx="20" fill="none" stroke="#f59e0b" stroke-opacity=".22" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="60" y="${titleLines.length > 1 ? 200 : 230}" fill="#ffffff" font-size="${titleFontSize}" font-weight="800" font-family="Arial, Helvetica, sans-serif">${titleMarkup}</text>
+
+  <!-- Amber accent line under title -->
+  <rect x="60" y="${160 + titleLines.length * 70}" width="120" height="5" rx="3" fill="url(#strip)"/>
+
+  <!-- Description -->
+  ${descMarkup}
+
+  <!-- Divider -->
+  <line x1="60" y1="650" x2="740" y2="650" stroke="#f59e0b" stroke-opacity=".25" stroke-width="1"/>
+
+  <!-- Date pill -->
+  <rect x="60" y="668" width="340" height="72" rx="14" fill="url(#datepill)" stroke="#f59e0b" stroke-opacity=".3" stroke-width="1"/>
+  <text x="80" y="694" fill="#fbbf24" font-size="11" font-weight="700" letter-spacing="2" font-family="Arial, Helvetica, sans-serif">DATE</text>
+  <text x="80" y="722" fill="#ffffff" font-size="22" font-weight="700" font-family="Arial, Helvetica, sans-serif">${xmlEscape(date)}</text>
+
+  <!-- Time pill -->
+  ${timeDisplay ? `
+  <rect x="420" y="668" width="320" height="72" rx="14" fill="url(#datepill)" stroke="#f59e0b" stroke-opacity=".3" stroke-width="1"/>
+  <text x="440" y="694" fill="#fbbf24" font-size="11" font-weight="700" letter-spacing="2" font-family="Arial, Helvetica, sans-serif">TIME</text>
+  <text x="440" y="722" fill="#ffffff" font-size="22" font-weight="700" font-family="Arial, Helvetica, sans-serif">${xmlEscape(timeDisplay)}</text>
+  ` : ""}
+
+  <!-- Venue -->
+  ${venueDisplay ? `
+  <text x="60" y="790" fill="#fbbf24" font-size="11" font-weight="700" letter-spacing="2" font-family="Arial, Helvetica, sans-serif">VENUE</text>
+  ${textBlock(venueDisplay, { x: 60, y: 818, size: 22, color: "#ffffff", maxChars: 52, maxLines: 2, lineHeight: 30 })}
+  ` : ""}
+
+  <!-- Organizer -->
+  ${organizer || department ? `
+  <text x="60" y="${venueDisplay ? 890 : 820}" fill="#94a3b8" font-size="16" font-family="Arial, Helvetica, sans-serif">
+    ${xmlEscape([organizer, department].filter(Boolean).join(" · "))}
+  </text>
+  ` : ""}
+
+  <!-- Reg deadline badge -->
+  ${regDeadline ? `
+  <rect x="60" y="920" width="340" height="36" rx="8" fill="#f59e0b" fill-opacity=".15" stroke="#f59e0b" stroke-opacity=".4" stroke-width="1"/>
+  <text x="80" y="943" fill="#fbbf24" font-size="14" font-weight="600" font-family="Arial, Helvetica, sans-serif">Register by  ${xmlEscape(regDeadline)}</text>
+  ` : ""}
+
+  <!-- Footer label -->
+  <text x="740" y="960" fill="#f59e0b" font-size="13" font-weight="700" letter-spacing="3" text-anchor="end" font-family="Arial, Helvetica, sans-serif">CAMPUSCONNECT</text>
+</svg>`;
 }
 
 async function buildPosterSvg(event, completion, purpose) {
@@ -161,7 +291,9 @@ async function buildPosterSvg(event, completion, purpose) {
 }
 
 export async function generateTextFocusedPoster(event, completion = null, purpose = "announcement") {
-  const svg = await buildPosterSvg(event, completion, purpose);
+  const svg = purpose === "announcement"
+    ? await buildAnnouncementSvg(event)
+    : await buildPosterSvg(event, completion, purpose);
   const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   const folder = purpose === "completion"
     ? "campus-connect/posters/event-recaps"
